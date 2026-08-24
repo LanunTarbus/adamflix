@@ -4,17 +4,30 @@ const fs = require("fs");
 
 
 // ==================================================
+// DATA ROOT
+// Local   = project folder
+// Railway = mounted volume
+// ==================================================
+
+const dataRoot =
+    process.env.RAILWAY_VOLUME_MOUNT_PATH
+    ||
+    path.join(
+        __dirname,
+        ".."
+    );
+
+
+// ==================================================
 // DATABASE FOLDER
 // ==================================================
 
-const databaseFolder = path.join(
-    __dirname,
-    "..",
-    "database"
-);
+const databaseFolder =
+    path.join(
+        dataRoot,
+        "database"
+    );
 
-
-// Make sure database folder exists
 
 fs.mkdirSync(
     databaseFolder,
@@ -28,14 +41,22 @@ fs.mkdirSync(
 // DATABASE
 // ==================================================
 
-const dbPath = path.join(
-    databaseFolder,
-    "movies.db"
-);
+const dbPath =
+    path.join(
+        databaseFolder,
+        "movies.db"
+    );
 
 
 const db =
-    new Database(dbPath);
+    new Database(
+        dbPath
+    );
+
+
+db.pragma(
+    "foreign_keys = ON"
+);
 
 
 // ==================================================
@@ -87,7 +108,7 @@ db.exec(`
 
 
 // ==================================================
-// EXPORT DATABASE
+// EXPORT
 // ==================================================
 
 module.exports = db;

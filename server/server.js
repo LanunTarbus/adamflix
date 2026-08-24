@@ -144,18 +144,29 @@ const SESSION_DURATION =
 // FOLDERS
 // ==================================================
 
-const imagesFolder =
+// ==================================================
+// PERSISTENT STORAGE ROOT
+// ==================================================
+
+const dataRoot =
+    process.env.RAILWAY_VOLUME_MOUNT_PATH
+    ||
     path.join(
         __dirname,
-        "..",
+        ".."
+    );
+
+
+const imagesFolder =
+    path.join(
+        dataRoot,
         "images"
     );
 
 
 const moviesFolder =
     path.join(
-        __dirname,
-        "..",
+        dataRoot,
         "movies"
     );
 
@@ -202,6 +213,27 @@ app.use(
             __dirname,
             ".."
         )
+    )
+);
+
+// ==================================================
+// SERVE PERSISTENT UPLOADS
+// ==================================================
+
+app.use(
+    "/images",
+
+    express.static(
+        imagesFolder
+    )
+);
+
+
+app.use(
+    "/movies",
+
+    express.static(
+        moviesFolder
     )
 );
 
