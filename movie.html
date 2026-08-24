@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Movie - AdamFlix</title>
+
+    <link
+        rel="stylesheet"
+        href="style.css"
+    >
+
+</head>
+
+
+<body>
+
+
+<header>
+
+    <h1>AdamFlix</h1>
+
+    <nav>
+
+        <a href="index.html">
+            Home
+        </a>
+
+        <a href="index.html">
+            Movies
+        </a>
+
+    </nav>
+
+</header>
+
+
+<main>
+
+    <section
+        class="movie-detail"
+        id="movieDetail"
+    >
+
+        Loading...
+
+    </section>
+
+</main>
+
+
+<script>
+
+const params =
+    new URLSearchParams(
+        window.location.search
+    );
+
+
+const movieId =
+    params.get("id");
+
+
+async function loadMovie() {
+
+    const response =
+        await fetch(
+            `/api/movies/${movieId}`
+        );
+
+
+    if (!response.ok) {
+
+        document.getElementById(
+            "movieDetail"
+        ).innerHTML =
+            "<h2>Movie not found</h2>";
+
+        return;
+
+    }
+
+
+    const movie =
+        await response.json();
+
+
+    document.getElementById(
+        "movieDetail"
+    ).innerHTML = `
+
+        <div class="detail-poster">
+
+            <img
+                src="${movie.poster}"
+                alt="${movie.title}"
+            >
+
+        </div>
+
+
+        <div class="detail-info">
+
+            <h1>
+                ${movie.title}
+            </h1>
+
+
+            <div class="movie-meta">
+
+                <span>
+                    ⭐ ${movie.rating}
+                </span>
+
+                <span>
+                    ${movie.year}
+                </span>
+
+                <span>
+                    ${movie.genre}
+                </span>
+
+                <span>
+                    ${movie.duration}
+                </span>
+
+            </div>
+
+
+            <p class="description">
+
+                ${movie.description}
+
+            </p>
+
+
+            <button
+                onclick="
+                    location.href=
+                    'watch.html?id=${movie.id}'
+                "
+            >
+
+                ▶ Watch Now
+
+            </button>
+
+        </div>
+
+    `;
+
+}
+
+
+loadMovie();
+
+</script>
+
+
+</body>
+
+</html>

@@ -1,0 +1,1912 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Watch - AdamFlix</title>
+
+    <link
+        rel="stylesheet"
+        href="style.css"
+    >
+
+</head>
+
+
+<body>
+
+<header class="navbar">
+
+    <div class="logo">
+        ADAMFLIX
+    </div>
+
+    <nav>
+
+        <a href="/">
+            Home
+        </a>
+
+    </nav>
+
+</header>
+
+
+<main class="watch-page">
+
+
+    <!-- ==================================================
+         CUSTOM VIDEO PLAYER
+    ================================================== -->
+
+    <section
+        id="playerContainer"
+        class="custom-player"
+    >
+
+
+        <video
+            id="videoPlayer"
+            preload="metadata"
+            playsinline
+        >
+            Your browser does not support video playback.
+        </video>
+
+
+        <!-- BIG CENTER PLAY -->
+
+        <button
+            id="centerPlayButton"
+            class="center-play-button"
+            type="button"
+        >
+            ▶
+        </button>
+
+
+        <!-- PLAYER CONTROLS -->
+
+        <div
+            id="playerControls"
+            class="player-controls"
+        >
+
+
+            <!-- PROGRESS -->
+
+            <div class="player-progress-area">
+
+                <input
+                    type="range"
+                    id="progressSlider"
+                    class="player-progress"
+                    min="0"
+                    max="100"
+                    value="0"
+                    step="0.1"
+                >
+
+            </div>
+
+
+            <div class="player-bottom-controls">
+
+
+                <!-- LEFT -->
+
+                <div class="player-left-controls">
+
+
+                    <button
+                        id="playPauseButton"
+                        class="player-control-button"
+                        type="button"
+                        title="Play / Pause"
+                    >
+                        ▶
+                    </button>
+
+
+                    <button
+                        id="backwardButton"
+                        class="player-control-button skip-button"
+                        type="button"
+                        title="Back 10 seconds"
+                    >
+                        ↶
+                        <span>10</span>
+                    </button>
+
+
+                    <button
+                        id="forwardButton"
+                        class="player-control-button skip-button"
+                        type="button"
+                        title="Forward 10 seconds"
+                    >
+                        ↷
+                        <span>10</span>
+                    </button>
+
+
+                    <button
+                        id="muteButton"
+                        class="player-control-button"
+                        type="button"
+                        title="Mute"
+                    >
+                        🔊
+                    </button>
+
+
+                    <input
+                        type="range"
+                        id="volumeSlider"
+                        class="volume-slider"
+                        min="0"
+                        max="1"
+                        step="0.01"
+                        value="1"
+                    >
+
+
+                    <div class="player-time">
+
+                        <span id="currentTime">
+                            00:00
+                        </span>
+
+                        <span>
+                            /
+                        </span>
+
+                        <span id="totalTime">
+                            00:00
+                        </span>
+
+                    </div>
+
+
+                </div>
+
+
+                <!-- RIGHT -->
+
+                <div class="player-right-controls">
+
+
+                    <button
+                        id="fullscreenButton"
+                        class="player-control-button"
+                        type="button"
+                        title="Fullscreen"
+                    >
+                        ⛶
+                    </button>
+
+
+                </div>
+
+
+            </div>
+
+        </div>
+
+
+        <!-- ==================================================
+             AUTOPLAY NEXT OVERLAY
+        ================================================== -->
+
+        <div
+            id="nextOverlay"
+            class="next-overlay"
+            style="display:none;"
+        >
+
+            <div class="next-box">
+
+                <p>
+                    UP NEXT
+                </p>
+
+
+                <h2 id="nextMovieTitle">
+                    Loading...
+                </h2>
+
+
+                <p>
+
+                    Playing in
+
+                    <strong id="countdown">
+                        10
+                    </strong>
+
+                    seconds
+
+                </p>
+
+
+                <div class="next-actions">
+
+                    <button
+                        id="playNextButton"
+                        type="button"
+                    >
+                        ▶ Play Now
+                    </button>
+
+
+                    <button
+                        id="cancelNextButton"
+                        type="button"
+                    >
+                        Cancel
+                    </button>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+    </section>
+
+
+    <!-- ==================================================
+         MOVIE INFORMATION
+    ================================================== -->
+
+    <section class="watch-info">
+
+
+        <div class="watch-title-row">
+
+
+            <div>
+
+
+                <h1 id="movieTitle">
+                    Loading...
+                </h1>
+
+
+                <div
+                    id="movieMeta"
+                    class="movie-meta"
+                ></div>
+
+
+            </div>
+
+
+            <button
+                id="myListButton"
+                class="my-list-button"
+                type="button"
+            >
+                + My List
+            </button>
+
+
+        </div>
+
+
+        <p
+            id="description"
+            class="description"
+        ></p>
+
+
+    </section>
+
+
+    <!-- ==================================================
+         RELATED MOVIES
+    ================================================== -->
+
+    <section class="movie-section">
+
+
+        <div class="section-heading">
+
+            <h2>
+                Related Movies
+            </h2>
+
+        </div>
+
+
+        <div
+            id="relatedMovies"
+            class="movie-row"
+        ></div>
+
+
+    </section>
+
+
+</main>
+
+
+<script>
+
+
+// ==================================================
+// URL / VARIABLES
+// ==================================================
+
+const params =
+    new URLSearchParams(
+        window.location.search
+    );
+
+
+const movieId =
+    Number(
+        params.get("id")
+    );
+
+
+const player =
+    document.getElementById(
+        "videoPlayer"
+    );
+
+
+const playerContainer =
+    document.getElementById(
+        "playerContainer"
+    );
+
+
+const controls =
+    document.getElementById(
+        "playerControls"
+    );
+
+
+const playPauseButton =
+    document.getElementById(
+        "playPauseButton"
+    );
+
+
+const centerPlayButton =
+    document.getElementById(
+        "centerPlayButton"
+    );
+
+
+const backwardButton =
+    document.getElementById(
+        "backwardButton"
+    );
+
+
+const forwardButton =
+    document.getElementById(
+        "forwardButton"
+    );
+
+
+const progressSlider =
+    document.getElementById(
+        "progressSlider"
+    );
+
+
+const currentTimeElement =
+    document.getElementById(
+        "currentTime"
+    );
+
+
+const totalTimeElement =
+    document.getElementById(
+        "totalTime"
+    );
+
+
+const volumeSlider =
+    document.getElementById(
+        "volumeSlider"
+    );
+
+
+const muteButton =
+    document.getElementById(
+        "muteButton"
+    );
+
+
+const fullscreenButton =
+    document.getElementById(
+        "fullscreenButton"
+    );
+
+
+let currentMovie = null;
+
+let allMovies = [];
+
+let nextMovie = null;
+
+let countdownTimer = null;
+
+let countdownValue = 10;
+
+let controlsTimer = null;
+
+let previousVolume = 1;
+
+
+// ==================================================
+// LOAD MOVIE
+// ==================================================
+
+async function loadMovie() {
+
+    if (!movieId) {
+
+        showError(
+            "Movie ID missing"
+        );
+
+        return;
+
+    }
+
+
+    try {
+
+        const [
+            movieResponse,
+            moviesResponse
+        ] =
+            await Promise.all([
+
+                fetch(
+                    `/api/movies/${movieId}`
+                ),
+
+                fetch(
+                    "/api/movies"
+                )
+
+            ]);
+
+
+        if (!movieResponse.ok) {
+
+            throw new Error(
+                "Movie not found"
+            );
+
+        }
+
+
+        if (!moviesResponse.ok) {
+
+            throw new Error(
+                "Unable to load movie list"
+            );
+
+        }
+
+
+        currentMovie =
+            await movieResponse.json();
+
+
+        allMovies =
+            await moviesResponse.json();
+
+
+        // TITLE
+
+        document
+            .getElementById(
+                "movieTitle"
+            )
+            .textContent =
+                currentMovie.title;
+
+
+        document.title =
+            `${currentMovie.title} - AdamFlix`;
+
+
+        // META
+
+        document
+            .getElementById(
+                "movieMeta"
+            )
+            .innerHTML = `
+
+                <span>
+                    ⭐ ${currentMovie.rating}
+                </span>
+
+                <span>
+                    ${currentMovie.year}
+                </span>
+
+                <span>
+                    ${escapeHtml(currentMovie.genre)}
+                </span>
+
+                <span>
+                    ${escapeHtml(currentMovie.duration)}
+                </span>
+
+            `;
+
+
+        // DESCRIPTION
+
+        document
+            .getElementById(
+                "description"
+            )
+            .textContent =
+                currentMovie.description || "";
+
+
+        // VIDEO
+
+        player.src =
+            currentMovie.video;
+
+
+        player.load();
+
+
+        restoreProgress();
+
+        updateMyListButton();
+
+        renderRelatedMovies();
+
+        selectNextMovie();
+
+
+    } catch (error) {
+
+        console.error(error);
+
+
+        showError(
+            "Unable to load movie"
+        );
+
+    }
+
+}
+
+
+// ==================================================
+// PLAY / PAUSE
+// ==================================================
+
+function togglePlay() {
+
+    if (player.paused) {
+
+        player
+            .play()
+            .catch(
+                error =>
+                    console.error(
+                        error
+                    )
+            );
+
+    } else {
+
+        player.pause();
+
+    }
+
+}
+
+
+playPauseButton.addEventListener(
+    "click",
+    togglePlay
+);
+
+
+centerPlayButton.addEventListener(
+    "click",
+    togglePlay
+);
+
+
+player.addEventListener(
+    "click",
+    togglePlay
+);
+
+
+player.addEventListener(
+    "play",
+
+    function () {
+
+        playPauseButton.textContent =
+            "❚❚";
+
+
+        centerPlayButton.style.display =
+            "none";
+
+    }
+);
+
+
+player.addEventListener(
+    "pause",
+
+    function () {
+
+        playPauseButton.textContent =
+            "▶";
+
+
+        centerPlayButton.style.display =
+            "flex";
+
+    }
+);
+
+
+// ==================================================
+// 10 SECOND BACKWARD
+// ==================================================
+
+backwardButton.addEventListener(
+    "click",
+
+    function () {
+
+        player.currentTime =
+            Math.max(
+                0,
+                player.currentTime - 10
+            );
+
+    }
+);
+
+
+// ==================================================
+// 10 SECOND FORWARD
+// ==================================================
+
+forwardButton.addEventListener(
+    "click",
+
+    function () {
+
+        if (
+            !Number.isFinite(
+                player.duration
+            )
+        ) {
+
+            return;
+
+        }
+
+
+        player.currentTime =
+            Math.min(
+                player.duration,
+                player.currentTime + 10
+            );
+
+    }
+);
+
+
+// ==================================================
+// VIDEO METADATA
+// ==================================================
+
+player.addEventListener(
+    "loadedmetadata",
+
+    function () {
+
+        totalTimeElement.textContent =
+            formatTime(
+                player.duration
+            );
+
+    }
+);
+
+
+// ==================================================
+// VIDEO TIME UPDATE
+// ==================================================
+
+player.addEventListener(
+    "timeupdate",
+
+    function () {
+
+        currentTimeElement.textContent =
+            formatTime(
+                player.currentTime
+            );
+
+
+        if (
+            Number.isFinite(
+                player.duration
+            )
+            &&
+            player.duration > 0
+        ) {
+
+            const percent =
+                (
+                    player.currentTime /
+                    player.duration
+                ) * 100;
+
+
+            progressSlider.value =
+                percent;
+
+
+            saveProgress(
+                percent
+            );
+
+        }
+
+    }
+);
+
+
+// ==================================================
+// SEEK
+// ==================================================
+
+progressSlider.addEventListener(
+    "input",
+
+    function () {
+
+        if (
+            !Number.isFinite(
+                player.duration
+            )
+            ||
+            player.duration <= 0
+        ) {
+
+            return;
+
+        }
+
+
+        const percent =
+            Number(
+                progressSlider.value
+            );
+
+
+        player.currentTime =
+            (
+                percent /
+                100
+            ) *
+            player.duration;
+
+    }
+);
+
+
+// ==================================================
+// VOLUME
+// ==================================================
+
+volumeSlider.addEventListener(
+    "input",
+
+    function () {
+
+        const volume =
+            Number(
+                volumeSlider.value
+            );
+
+
+        player.volume =
+            volume;
+
+
+        player.muted =
+            volume === 0;
+
+
+        updateVolumeIcon();
+
+    }
+);
+
+
+muteButton.addEventListener(
+    "click",
+
+    function () {
+
+        if (
+            player.muted ||
+            player.volume === 0
+        ) {
+
+            player.muted =
+                false;
+
+
+            player.volume =
+                previousVolume > 0
+                    ? previousVolume
+                    : 1;
+
+
+            volumeSlider.value =
+                player.volume;
+
+        } else {
+
+            previousVolume =
+                player.volume;
+
+
+            player.muted =
+                true;
+
+
+            volumeSlider.value =
+                0;
+
+        }
+
+
+        updateVolumeIcon();
+
+    }
+);
+
+
+function updateVolumeIcon() {
+
+    if (
+        player.muted ||
+        player.volume === 0
+    ) {
+
+        muteButton.textContent =
+            "🔇";
+
+        return;
+
+    }
+
+
+    if (
+        player.volume <
+        0.5
+    ) {
+
+        muteButton.textContent =
+            "🔉";
+
+        return;
+
+    }
+
+
+    muteButton.textContent =
+        "🔊";
+
+}
+
+
+// ==================================================
+// FULLSCREEN
+// ==================================================
+
+fullscreenButton.addEventListener(
+    "click",
+
+    async function () {
+
+        try {
+
+            if (
+                !document.fullscreenElement
+            ) {
+
+                await playerContainer
+                    .requestFullscreen();
+
+            } else {
+
+                await document
+                    .exitFullscreen();
+
+            }
+
+        } catch (error) {
+
+            console.error(
+                "Fullscreen error:",
+                error
+            );
+
+        }
+
+    }
+);
+
+
+// ==================================================
+// KEYBOARD CONTROLS
+// ==================================================
+
+document.addEventListener(
+    "keydown",
+
+    function (event) {
+
+        const tag =
+            document
+                .activeElement
+                ?.tagName
+                ?.toLowerCase();
+
+
+        if (
+            tag === "input" ||
+            tag === "textarea"
+        ) {
+
+            return;
+
+        }
+
+
+        switch (
+            event.key.toLowerCase()
+        ) {
+
+            case " ":
+
+                event.preventDefault();
+
+                togglePlay();
+
+                break;
+
+
+            case "arrowleft":
+
+                player.currentTime =
+                    Math.max(
+                        0,
+                        player.currentTime - 10
+                    );
+
+                break;
+
+
+            case "arrowright":
+
+                if (
+                    Number.isFinite(
+                        player.duration
+                    )
+                ) {
+
+                    player.currentTime =
+                        Math.min(
+                            player.duration,
+                            player.currentTime + 10
+                        );
+
+                }
+
+                break;
+
+
+            case "f":
+
+                fullscreenButton.click();
+
+                break;
+
+
+            case "m":
+
+                muteButton.click();
+
+                break;
+
+        }
+
+    }
+);
+
+
+// ==================================================
+// AUTO HIDE CONTROLS
+// ==================================================
+
+function showControls() {
+
+    controls.classList.remove(
+        "controls-hidden"
+    );
+
+
+    clearTimeout(
+        controlsTimer
+    );
+
+
+    if (
+        !player.paused
+    ) {
+
+        controlsTimer =
+            setTimeout(
+                function () {
+
+                    controls
+                        .classList
+                        .add(
+                            "controls-hidden"
+                        );
+
+                },
+                3000
+            );
+
+    }
+
+}
+
+
+playerContainer.addEventListener(
+    "mousemove",
+    showControls
+);
+
+
+playerContainer.addEventListener(
+    "touchstart",
+    showControls
+);
+
+
+player.addEventListener(
+    "pause",
+    showControls
+);
+
+
+player.addEventListener(
+    "play",
+    showControls
+);
+
+
+// ==================================================
+// FORMAT TIME
+// ==================================================
+
+function formatTime(
+    seconds
+) {
+
+    if (
+        !Number.isFinite(
+            seconds
+        )
+    ) {
+
+        return "00:00";
+
+    }
+
+
+    const totalSeconds =
+        Math.floor(
+            seconds
+        );
+
+
+    const hours =
+        Math.floor(
+            totalSeconds /
+            3600
+        );
+
+
+    const minutes =
+        Math.floor(
+            (
+                totalSeconds %
+                3600
+            ) /
+            60
+        );
+
+
+    const secs =
+        totalSeconds %
+        60;
+
+
+    if (
+        hours > 0
+    ) {
+
+        return (
+            String(hours)
+            +
+            ":"
+            +
+            String(minutes)
+                .padStart(
+                    2,
+                    "0"
+                )
+            +
+            ":"
+            +
+            String(secs)
+                .padStart(
+                    2,
+                    "0"
+                )
+        );
+
+    }
+
+
+    return (
+        String(minutes)
+            .padStart(
+                2,
+                "0"
+            )
+        +
+        ":"
+        +
+        String(secs)
+            .padStart(
+                2,
+                "0"
+            )
+    );
+
+}
+
+
+// ==================================================
+// CONTINUE WATCHING - RESTORE
+// ==================================================
+
+function restoreProgress() {
+
+    const saved =
+        localStorage.getItem(
+            `movie-progress-${movieId}`
+        );
+
+
+    if (!saved) {
+        return;
+    }
+
+
+    try {
+
+        const progress =
+            JSON.parse(
+                saved
+            );
+
+
+        player.addEventListener(
+            "loadedmetadata",
+
+            function restore() {
+
+                if (
+                    progress.currentTime > 5
+                    &&
+                    progress.percent < 95
+                    &&
+                    progress.currentTime <
+                        player.duration
+                ) {
+
+                    player.currentTime =
+                        progress.currentTime;
+
+                }
+
+
+                player
+                    .removeEventListener(
+                        "loadedmetadata",
+                        restore
+                    );
+
+            }
+        );
+
+
+    } catch (error) {
+
+        console.error(
+            "Invalid saved progress:",
+            error
+        );
+
+    }
+
+}
+
+
+// ==================================================
+// CONTINUE WATCHING - SAVE
+// ==================================================
+
+function saveProgress(
+    percent
+) {
+
+    if (
+        !Number.isFinite(
+            player.duration
+        )
+        ||
+        player.duration <= 0
+    ) {
+
+        return;
+
+    }
+
+
+    localStorage.setItem(
+
+        `movie-progress-${movieId}`,
+
+        JSON.stringify({
+
+            currentTime:
+                player.currentTime,
+
+            duration:
+                player.duration,
+
+            percent:
+                percent
+
+        })
+
+    );
+
+}
+
+
+// ==================================================
+// MOVIE ENDED
+// ==================================================
+
+player.addEventListener(
+    "ended",
+
+    function () {
+
+        localStorage.removeItem(
+            `movie-progress-${movieId}`
+        );
+
+
+        startNextCountdown();
+
+    }
+);
+
+
+// ==================================================
+// MY LIST
+// ==================================================
+
+function getMyList() {
+
+    try {
+
+        return JSON.parse(
+            localStorage.getItem(
+                "adamflix-my-list"
+            )
+        ) || [];
+
+    } catch {
+
+        return [];
+
+    }
+
+}
+
+
+function updateMyListButton() {
+
+    const list =
+        getMyList();
+
+
+    const button =
+        document.getElementById(
+            "myListButton"
+        );
+
+
+    const exists =
+        list.includes(
+            movieId
+        );
+
+
+    if (exists) {
+
+        button.textContent =
+            "✓ My List";
+
+
+        button
+            .classList
+            .add(
+                "added"
+            );
+
+    } else {
+
+        button.textContent =
+            "+ My List";
+
+
+        button
+            .classList
+            .remove(
+                "added"
+            );
+
+    }
+
+}
+
+
+document
+    .getElementById(
+        "myListButton"
+    )
+    .addEventListener(
+        "click",
+
+        function () {
+
+            let list =
+                getMyList();
+
+
+            if (
+                list.includes(
+                    movieId
+                )
+            ) {
+
+                list =
+                    list.filter(
+                        id =>
+                            id !==
+                            movieId
+                    );
+
+            } else {
+
+                list.push(
+                    movieId
+                );
+
+            }
+
+
+            localStorage.setItem(
+                "adamflix-my-list",
+                JSON.stringify(
+                    list
+                )
+            );
+
+
+            updateMyListButton();
+
+        }
+    );
+
+
+// ==================================================
+// RELATED MOVIES
+// ==================================================
+
+function renderRelatedMovies() {
+
+    const container =
+        document.getElementById(
+            "relatedMovies"
+        );
+
+
+    container.innerHTML =
+        "";
+
+
+    const related =
+        allMovies
+            .filter(
+                movie =>
+
+                    Number(movie.id) !==
+                    movieId
+
+                    &&
+
+                    movie.genre ===
+                    currentMovie.genre
+            )
+            .slice(
+                0,
+                10
+            );
+
+
+    if (
+        related.length < 6
+    ) {
+
+        const extras =
+            allMovies.filter(
+                movie =>
+
+                    Number(movie.id) !==
+                    movieId
+
+                    &&
+
+                    !related.some(
+                        item =>
+                            Number(
+                                item.id
+                            )
+                            ===
+                            Number(
+                                movie.id
+                            )
+                    )
+            );
+
+
+        for (
+            const movie
+            of extras
+        ) {
+
+            related.push(
+                movie
+            );
+
+
+            if (
+                related.length >=
+                10
+            ) {
+
+                break;
+
+            }
+
+        }
+
+    }
+
+
+    if (
+        related.length === 0
+    ) {
+
+        container.innerHTML =
+            "<p>No related movies yet.</p>";
+
+        return;
+
+    }
+
+
+    related.forEach(
+        movie => {
+
+            container.appendChild(
+                createMovieCard(
+                    movie
+                )
+            );
+
+        }
+    );
+
+}
+
+
+// ==================================================
+// MOVIE CARD
+// ==================================================
+
+function createMovieCard(
+    movie
+) {
+
+    const card =
+        document.createElement(
+            "div"
+        );
+
+
+    card.className =
+        "movie-card";
+
+
+    card.innerHTML = `
+
+        <div class="poster-wrapper">
+
+            <img
+                src="${movie.poster}"
+                alt="${escapeHtml(movie.title)}"
+                loading="lazy"
+            >
+
+            <div class="poster-overlay">
+
+                <button
+                    type="button"
+                >
+                    ▶
+                </button>
+
+            </div>
+
+        </div>
+
+
+        <div class="movie-card-info">
+
+            <h3>
+                ${escapeHtml(movie.title)}
+            </h3>
+
+            <p>
+
+                ${movie.year}
+
+                •
+
+                ${escapeHtml(movie.genre)}
+
+                •
+
+                ⭐ ${movie.rating}
+
+            </p>
+
+        </div>
+
+    `;
+
+
+    card.addEventListener(
+        "click",
+
+        function () {
+
+            window.location.href =
+                `/watch.html?id=${movie.id}`;
+
+        }
+    );
+
+
+    return card;
+
+}
+
+
+// ==================================================
+// SELECT NEXT MOVIE
+// ==================================================
+
+function selectNextMovie() {
+
+    nextMovie =
+        allMovies.find(
+            movie =>
+
+                Number(movie.id) !==
+                movieId
+
+                &&
+
+                movie.genre ===
+                currentMovie.genre
+        );
+
+
+    if (!nextMovie) {
+
+        nextMovie =
+            allMovies.find(
+                movie =>
+
+                    Number(movie.id) !==
+                    movieId
+            );
+
+    }
+
+}
+
+
+// ==================================================
+// NEXT MOVIE COUNTDOWN
+// ==================================================
+
+function startNextCountdown() {
+
+    if (!nextMovie) {
+        return;
+    }
+
+
+    countdownValue =
+        10;
+
+
+    document
+        .getElementById(
+            "nextMovieTitle"
+        )
+        .textContent =
+            nextMovie.title;
+
+
+    document
+        .getElementById(
+            "countdown"
+        )
+        .textContent =
+            countdownValue;
+
+
+    document
+        .getElementById(
+            "nextOverlay"
+        )
+        .style.display =
+            "flex";
+
+
+    clearInterval(
+        countdownTimer
+    );
+
+
+    countdownTimer =
+        setInterval(
+
+            function () {
+
+                countdownValue--;
+
+
+                document
+                    .getElementById(
+                        "countdown"
+                    )
+                    .textContent =
+                        countdownValue;
+
+
+                if (
+                    countdownValue <= 0
+                ) {
+
+                    clearInterval(
+                        countdownTimer
+                    );
+
+
+                    playNextMovie();
+
+                }
+
+            },
+
+            1000
+
+        );
+
+}
+
+
+// ==================================================
+// PLAY NEXT
+// ==================================================
+
+function playNextMovie() {
+
+    if (!nextMovie) {
+        return;
+    }
+
+
+    clearInterval(
+        countdownTimer
+    );
+
+
+    window.location.href =
+        `/watch.html?id=${nextMovie.id}`;
+
+}
+
+
+// ==================================================
+// CANCEL NEXT
+// ==================================================
+
+function cancelNextMovie() {
+
+    clearInterval(
+        countdownTimer
+    );
+
+
+    document
+        .getElementById(
+            "nextOverlay"
+        )
+        .style.display =
+            "none";
+
+}
+
+
+// ==================================================
+// NEXT BUTTONS
+// ==================================================
+
+document
+    .getElementById(
+        "playNextButton"
+    )
+    .addEventListener(
+        "click",
+        playNextMovie
+    );
+
+
+document
+    .getElementById(
+        "cancelNextButton"
+    )
+    .addEventListener(
+        "click",
+        cancelNextMovie
+    );
+
+
+// ==================================================
+// ERROR
+// ==================================================
+
+function showError(
+    message
+) {
+
+    document
+        .getElementById(
+            "movieTitle"
+        )
+        .textContent =
+            message;
+
+}
+
+
+// ==================================================
+// ESCAPE HTML
+// ==================================================
+
+function escapeHtml(
+    value
+) {
+
+    return String(
+        value ?? ""
+    )
+
+        .replace(
+            /&/g,
+            "&amp;"
+        )
+
+        .replace(
+            /</g,
+            "&lt;"
+        )
+
+        .replace(
+            />/g,
+            "&gt;"
+        )
+
+        .replace(
+            /"/g,
+            "&quot;"
+        )
+
+        .replace(
+            /'/g,
+            "&#039;"
+        );
+
+}
+
+
+// ==================================================
+// START
+// ==================================================
+
+loadMovie();
+
+
+</script>
+
+</body>
+
+</html>

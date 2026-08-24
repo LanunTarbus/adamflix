@@ -1,0 +1,22 @@
+# Dependencies
+node_modules/
+
+# Environment / admin secrets
+.env
+.env.local
+.env.production
+
+movies/
+database/
+images/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Windows
+Thumbs.db
+Desktop.ini
+
+# macOS
+.DS_Store
