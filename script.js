@@ -1258,6 +1258,13 @@ function performSearch(
                     );
 
 
+                const description =
+                    String(
+                        movie.description || ""
+                    )
+                        .toLowerCase();
+
+
                 const matchesText =
                     text === ""
                     ||
@@ -1270,6 +1277,10 @@ function performSearch(
                     )
                     ||
                     year.includes(
+                        text
+                    )
+                    ||
+                    description.includes(
                         text
                     );
 
@@ -1352,27 +1363,110 @@ function renderSearchResults(
 // ==================================================
 
 function syncSearch(
-    value
+    value,
+    source = "main"
 ) {
 
+    const cleanValue =
+        String(
+            value || ""
+        );
+
+
     searchInput.value =
-        value;
+        cleanValue;
 
 
     navSearch.value =
-        value;
+        cleanValue;
 
 
     mobileSearch.value =
-        value;
+        cleanValue;
 
 
     performSearch(
-        value
+        cleanValue
     );
+
+
+    // If search is used from the fixed navbar/mobile bar,
+    // automatically move the user to the results.
+    if (
+        cleanValue.trim() !== ""
+        &&
+        (
+            source === "nav"
+            ||
+            source === "mobile"
+        )
+    ) {
+
+        window.requestAnimationFrame(
+            () => {
+
+                searchSection
+                    .scrollIntoView({
+
+                        behavior:
+                            "smooth",
+
+                        block:
+                            "start"
+
+                    });
+
+            }
+        );
+
+    }
 
 }
 
+
+searchInput.addEventListener(
+    "input",
+
+    function () {
+
+        syncSearch(
+            this.value,
+            "main"
+        );
+
+    }
+);
+
+
+navSearch.addEventListener(
+    "input",
+
+    function () {
+
+        syncSearch(
+            this.value,
+            "nav"
+        );
+
+    }
+);
+
+
+mobileSearch.addEventListener(
+    "input",
+
+    function () {
+
+        syncSearch(
+            this.value,
+            "mobile"
+        );
+
+    }
+);
+
+
+// Also support the native clear/search event on input[type="search"]
 
 [
     searchInput,
@@ -1383,12 +1477,21 @@ function syncSearch(
     input => {
 
         input.addEventListener(
-            "input",
+            "search",
 
             function () {
 
+                const source =
+                    this === navSearch
+                        ? "nav"
+                        : this === mobileSearch
+                            ? "mobile"
+                            : "main";
+
+
                 syncSearch(
-                    this.value
+                    this.value,
+                    source
                 );
 
             }
@@ -1438,7 +1541,8 @@ document
 
 
             syncSearch(
-                ""
+                "",
+                "main"
             );
 
 

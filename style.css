@@ -1681,3 +1681,158 @@ body {
     }
 
 }
+
+
+/* =========================================================
+   V25.1 WATCH PLAYER FULLSCREEN FIX
+   Restores the working player behavior from the previous version.
+========================================================= */
+
+/* JS adds .controls-hidden directly to #playerControls */
+.player-controls {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+
+    transition:
+        opacity 0.25s ease,
+        visibility 0.25s ease;
+}
+
+
+.player-controls.controls-hidden {
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+}
+
+
+/* Standard Fullscreen API */
+.custom-player:fullscreen {
+    width: 100vw !important;
+    height: 100vh !important;
+
+    max-width: none !important;
+    max-height: none !important;
+
+    display: flex !important;
+
+    align-items: center !important;
+    justify-content: center !important;
+
+    overflow: hidden !important;
+
+    border-radius: 0 !important;
+
+    background: #000000 !important;
+}
+
+
+/* Safari / WebKit fullscreen */
+.custom-player:-webkit-full-screen {
+    width: 100vw !important;
+    height: 100vh !important;
+
+    max-width: none !important;
+    max-height: none !important;
+
+    display: flex !important;
+
+    align-items: center !important;
+    justify-content: center !important;
+
+    overflow: hidden !important;
+
+    border-radius: 0 !important;
+
+    background: #000000 !important;
+}
+
+
+/* Override the normal max-height:80vh while fullscreen */
+.custom-player:fullscreen video,
+.custom-player:-webkit-full-screen video {
+    width: 100% !important;
+    height: 100% !important;
+
+    max-width: 100% !important;
+    max-height: none !important;
+
+    margin: 0 !important;
+
+    object-fit: contain !important;
+
+    background: #000000 !important;
+}
+
+
+/* Controls must stay at the bottom of the viewport */
+.custom-player:fullscreen .player-controls,
+.custom-player:-webkit-full-screen .player-controls {
+    position: absolute !important;
+
+    right: 0 !important;
+    bottom: 0 !important;
+    left: 0 !important;
+
+    width: 100% !important;
+
+    padding:
+        50px
+        24px
+        18px !important;
+
+    background:
+        linear-gradient(
+            to bottom,
+            transparent,
+            rgba(0, 0, 0, 0.92)
+        ) !important;
+}
+
+
+/* Keep the big play button centered */
+.custom-player:fullscreen .center-play-button,
+.custom-player:-webkit-full-screen .center-play-button {
+    position: absolute !important;
+
+    top: 50% !important;
+    left: 50% !important;
+
+    transform:
+        translate(
+            -50%,
+            -50%
+        ) !important;
+}
+
+
+/* Hide mouse cursor while the controls are hidden */
+.custom-player:fullscreen:has(.controls-hidden),
+.custom-player:-webkit-full-screen:has(.controls-hidden) {
+    cursor: none;
+}
+
+
+/* Search result anchor should not hide under fixed navbar */
+#searchSection {
+    scroll-margin-top: 85px;
+}
+
+
+@media (max-width: 700px) {
+
+    .custom-player:fullscreen .player-controls,
+    .custom-player:-webkit-full-screen .player-controls {
+        padding:
+            38px
+            10px
+            10px !important;
+    }
+
+
+    #searchSection {
+        scroll-margin-top: 72px;
+    }
+
+}
