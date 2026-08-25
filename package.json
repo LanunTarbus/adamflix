@@ -5,12 +5,14 @@
   "main": "script.js",
   "scripts": {
     "start": "node server/server.js"
-},
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1117.0",
+    "@aws-sdk/s3-request-presigner": "^3.1117.0",
     "better-sqlite3": "^13.0.3",
     "express": "^5.2.1",
     "multer": "^2.2.0"
