@@ -932,21 +932,198 @@ function updateVolumeIcon() {
 
 // ==================================================
 // FULLSCREEN
-// Desktop + Android + iPhone / iOS Safari
+// Desktop + Android + iPhone / iOS + fallback
 // ==================================================
 
-fullscreenButton.addEventListener(
-    "click",
+let fakeFullscreenActive = false;
+let fakeFullscreenBackup = null;
 
-    async function () {
+
+function isAppleMobile() {
+
+    return (
+        /iPhone|iPad|iPod/i.test(
+            navigator.userAgent
+        )
+        ||
+        (
+            navigator.platform === "MacIntel"
+            &&
+            navigator.maxTouchPoints > 1
+        )
+    );
+
+}
+
+
+function enterFakeFullscreen() {
+
+    if (fakeFullscreenActive) {
+        return;
+    }
+
+
+    fakeFullscreenActive = true;
+
+
+    fakeFullscreenBackup = {
+        position:
+            playerContainer.style.position,
+        inset:
+            playerContainer.style.inset,
+        width:
+            playerContainer.style.width,
+        height:
+            playerContainer.style.height,
+        maxWidth:
+            playerContainer.style.maxWidth,
+        maxHeight:
+            playerContainer.style.maxHeight,
+        zIndex:
+            playerContainer.style.zIndex,
+        borderRadius:
+            playerContainer.style.borderRadius,
+        background:
+            playerContainer.style.background,
+        videoHeight:
+            player.style.height,
+        videoMaxHeight:
+            player.style.maxHeight,
+        videoObjectFit:
+            player.style.objectFit,
+        bodyOverflow:
+            document.body.style.overflow
+    };
+
+
+    playerContainer.style.position =
+        "fixed";
+
+    playerContainer.style.inset =
+        "0";
+
+    playerContainer.style.width =
+        "100vw";
+
+    playerContainer.style.height =
+        "100dvh";
+
+    playerContainer.style.maxWidth =
+        "none";
+
+    playerContainer.style.maxHeight =
+        "none";
+
+    playerContainer.style.zIndex =
+        "999999";
+
+    playerContainer.style.borderRadius =
+        "0";
+
+    playerContainer.style.background =
+        "#000";
+
+
+    player.style.width =
+        "100%";
+
+    player.style.height =
+        "100%";
+
+    player.style.maxHeight =
+        "none";
+
+    player.style.objectFit =
+        "contain";
+
+
+    document.body.style.overflow =
+        "hidden";
+
+
+    fullscreenButton.textContent =
+        "✕";
+
+
+    showControls();
+
+}
+
+
+function exitFakeFullscreen() {
+
+    if (!fakeFullscreenActive) {
+        return;
+    }
+
+
+    fakeFullscreenActive = false;
+
+
+    const backup =
+        fakeFullscreenBackup || {};
+
+
+    playerContainer.style.position =
+        backup.position || "";
+
+    playerContainer.style.inset =
+        backup.inset || "";
+
+    playerContainer.style.width =
+        backup.width || "";
+
+    playerContainer.style.height =
+        backup.height || "";
+
+    playerContainer.style.maxWidth =
+        backup.maxWidth || "";
+
+    playerContainer.style.maxHeight =
+        backup.maxHeight || "";
+
+    playerContainer.style.zIndex =
+        backup.zIndex || "";
+
+    playerContainer.style.borderRadius =
+        backup.borderRadius || "";
+
+    playerContainer.style.background =
+        backup.background || "";
+
+
+    player.style.height =
+        backup.videoHeight || "";
+
+    player.style.maxHeight =
+        backup.videoMaxHeight || "";
+
+    player.style.objectFit =
+        backup.videoObjectFit || "";
+
+
+    document.body.style.overflow =
+        backup.bodyOverflow || "";
+
+
+    fullscreenButton.textContent =
+        "⛶";
+
+}
+
+
+async function enterFullscreen() {
+
+    // iPhone / iPad: try native video fullscreen first.
+    if (isAppleMobile()) {
 
         try {
 
-            // iPhone / iOS Safari native video fullscreen
             if (
-                typeof player.webkitEnterFullscreen === "function"
+                player.webkitSupportsFullscreen
                 &&
-                !document.fullscreenEnabled
+                typeof player.webkitEnterFullscreen ===
+                    "function"
             ) {
 
                 player.webkitEnterFullscreen();
@@ -956,109 +1133,197 @@ fullscreenButton.addEventListener(
             }
 
 
-            // Standard fullscreen
             if (
-                !document.fullscreenElement
-                &&
-                !document.webkitFullscreenElement
+                typeof player.webkitEnterFullScreen ===
+                    "function"
             ) {
 
-                if (
-                    playerContainer.requestFullscreen
-                ) {
+                player.webkitEnterFullScreen();
 
-                    await playerContainer
-                        .requestFullscreen();
-
-                    return;
-
-                }
-
-
-                // Safari fallback
-                if (
-                    playerContainer.webkitRequestFullscreen
-                ) {
-
-                    playerContainer
-                        .webkitRequestFullscreen();
-
-                    return;
-
-                }
-
-
-                // Last fallback: native video fullscreen
-                if (
-                    typeof player.webkitEnterFullscreen === "function"
-                ) {
-
-                    player.webkitEnterFullscreen();
-
-                    return;
-
-                }
-
-
-                console.warn(
-                    "Fullscreen is not supported on this browser."
-                );
-
-            } else {
-
-                // Exit standard fullscreen
-                if (
-                    document.exitFullscreen
-                ) {
-
-                    await document
-                        .exitFullscreen();
-
-                    return;
-
-                }
-
-
-                if (
-                    document.webkitExitFullscreen
-                ) {
-
-                    document
-                        .webkitExitFullscreen();
-
-                    return;
-
-                }
+                return;
 
             }
 
         } catch (error) {
 
-            console.error(
-                "Fullscreen error:",
+            console.warn(
+                "Native iOS fullscreen failed. Using viewport fullscreen.",
                 error
             );
 
+        }
 
-            // iOS emergency fallback
+
+        enterFakeFullscreen();
+
+        return;
+
+    }
+
+
+    // Standard Fullscreen API.
+    try {
+
+        if (
+            playerContainer.requestFullscreen
+        ) {
+
+            await playerContainer
+                .requestFullscreen();
+
+
             try {
 
                 if (
-                    typeof player.webkitEnterFullscreen === "function"
+                    screen.orientation
+                    &&
+                    screen.orientation.lock
                 ) {
 
-                    player.webkitEnterFullscreen();
+                    await screen.orientation
+                        .lock("landscape");
 
                 }
 
-            } catch (fallbackError) {
-
-                console.error(
-                    "iOS fullscreen fallback failed:",
-                    fallbackError
-                );
-
+            } catch {
+                // Orientation lock is optional.
             }
+
+
+            return;
+
+        }
+
+
+        if (
+            playerContainer.webkitRequestFullscreen
+        ) {
+
+            playerContainer
+                .webkitRequestFullscreen();
+
+            return;
+
+        }
+
+
+        if (
+            player.requestFullscreen
+        ) {
+
+            await player
+                .requestFullscreen();
+
+            return;
+
+        }
+
+
+        if (
+            typeof player.webkitEnterFullscreen ===
+                "function"
+        ) {
+
+            player.webkitEnterFullscreen();
+
+            return;
+
+        }
+
+    } catch (error) {
+
+        console.warn(
+            "Browser fullscreen failed. Using viewport fullscreen.",
+            error
+        );
+
+    }
+
+
+    // Final fallback for browsers that block Fullscreen API.
+    enterFakeFullscreen();
+
+}
+
+
+async function exitFullscreen() {
+
+    if (fakeFullscreenActive) {
+
+        exitFakeFullscreen();
+
+        return;
+
+    }
+
+
+    try {
+
+        if (
+            document.fullscreenElement
+            &&
+            document.exitFullscreen
+        ) {
+
+            await document
+                .exitFullscreen();
+
+            return;
+
+        }
+
+
+        if (
+            document.webkitFullscreenElement
+            &&
+            document.webkitExitFullscreen
+        ) {
+
+            document
+                .webkitExitFullscreen();
+
+            return;
+
+        }
+
+    } catch (error) {
+
+        console.warn(
+            "Exit fullscreen failed:",
+            error
+        );
+
+    }
+
+}
+
+
+fullscreenButton.addEventListener(
+    "click",
+
+    async function (event) {
+
+        event.preventDefault();
+        event.stopPropagation();
+
+
+        const standardFullscreen =
+            document.fullscreenElement
+            ||
+            document.webkitFullscreenElement;
+
+
+        if (
+            standardFullscreen
+            ||
+            fakeFullscreenActive
+        ) {
+
+            await exitFullscreen();
+
+        } else {
+
+            await enterFullscreen();
 
         }
 
@@ -1066,20 +1331,39 @@ fullscreenButton.addEventListener(
 );
 
 
+// Prevent player click handler from firing
+// when user taps the fullscreen control.
+fullscreenButton.addEventListener(
+    "touchend",
+
+    function (event) {
+
+        event.stopPropagation();
+
+    },
+
+    {
+        passive: true
+    }
+);
+
+
 // ==================================================
-// FULLSCREEN CHANGE
+// FULLSCREEN STATE
 // ==================================================
 
 function updateFullscreenButton() {
 
-    const isFullscreen =
+    const active =
         document.fullscreenElement
         ||
-        document.webkitFullscreenElement;
+        document.webkitFullscreenElement
+        ||
+        fakeFullscreenActive;
 
 
     fullscreenButton.textContent =
-        isFullscreen
+        active
             ? "✕"
             : "⛶";
 
@@ -1097,10 +1381,6 @@ document.addEventListener(
     updateFullscreenButton
 );
 
-
-// ==================================================
-// iOS VIDEO FULLSCREEN EVENTS
-// ==================================================
 
 player.addEventListener(
     "webkitbeginfullscreen",
@@ -1121,6 +1401,26 @@ player.addEventListener(
 
         fullscreenButton.textContent =
             "⛶";
+
+    }
+);
+
+
+// If mobile viewport changes while using fallback,
+// keep the player pinned to the visible screen.
+window.addEventListener(
+    "resize",
+
+    function () {
+
+        if (
+            fakeFullscreenActive
+        ) {
+
+            playerContainer.style.height =
+                "100dvh";
+
+        }
 
     }
 );
