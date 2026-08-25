@@ -55,6 +55,7 @@
         <video
             id="videoPlayer"
             preload="metadata"
+            playsinline
         >
             Your browser does not support video playback.
         </video>
@@ -189,6 +190,16 @@
                         title="Fullscreen"
                     >
                         ⛶
+                    </button>
+
+
+                    <button
+                        id="diagnosticButton"
+                        class="player-control-button"
+                        type="button"
+                        title="Fullscreen Diagnostic"
+                    >
+                        ?
                     </button>
 
 
@@ -435,8 +446,14 @@ const fullscreenButton =
     );
 
 
+const diagnosticButton =
+    document.getElementById(
+        "diagnosticButton"
+    );
+
+
 // ==================================================
-// iOS DETECTION
+// iOS / iPadOS DETECTION
 // ==================================================
 
 const isIOS =
@@ -451,38 +468,19 @@ const isIOS =
     );
 
 
+/*
+ * iPhone/iPad Safari is most reliable with the
+ * browser's native <video> controls. Native controls
+ * provide Apple's own fullscreen button.
+ */
 if (isIOS) {
 
-    // Use native iOS video controls.
-    // Do not force inline playback.
-
-    player.controls =
-        true;
-
-
-    player.removeAttribute(
-        "playsinline"
-    );
-
-
-    player.removeAttribute(
-        "webkit-playsinline"
-    );
-
-
-    // Hide custom controls on iOS.
+    player.controls = true;
 
     controls.style.display =
         "none";
 
-
     centerPlayButton.style.display =
-        "none";
-
-
-    // Native controls already provide fullscreen.
-
-    fullscreenButton.style.display =
         "none";
 
 }
@@ -565,6 +563,8 @@ async function loadMovie() {
             await moviesResponse.json();
 
 
+        // TITLE
+
         document
             .getElementById(
                 "movieTitle"
@@ -576,6 +576,8 @@ async function loadMovie() {
         document.title =
             `${currentMovie.title} - AdamFlix`;
 
+
+        // META
 
         document
             .getElementById(
@@ -602,6 +604,8 @@ async function loadMovie() {
             `;
 
 
+        // DESCRIPTION
+
         document
             .getElementById(
                 "description"
@@ -609,6 +613,8 @@ async function loadMovie() {
             .textContent =
                 currentMovie.description || "";
 
+
+        // VIDEO
 
         player.src =
             currentMovie.video;
@@ -666,26 +672,22 @@ function togglePlay() {
 }
 
 
-if (!isIOS) {
-
-    playPauseButton.addEventListener(
-        "click",
-        togglePlay
-    );
+playPauseButton.addEventListener(
+    "click",
+    togglePlay
+);
 
 
-    centerPlayButton.addEventListener(
-        "click",
-        togglePlay
-    );
+centerPlayButton.addEventListener(
+    "click",
+    togglePlay
+);
 
 
-    player.addEventListener(
-        "click",
-        togglePlay
-    );
-
-}
+player.addEventListener(
+    "click",
+    togglePlay
+);
 
 
 player.addEventListener(
@@ -693,16 +695,12 @@ player.addEventListener(
 
     function () {
 
-        if (!isIOS) {
-
-            playPauseButton.textContent =
-                "❚❚";
+        playPauseButton.textContent =
+            "❚❚";
 
 
-            centerPlayButton.style.display =
-                "none";
-
-        }
+        centerPlayButton.style.display =
+            "none";
 
     }
 );
@@ -713,16 +711,12 @@ player.addEventListener(
 
     function () {
 
-        if (!isIOS) {
-
-            playPauseButton.textContent =
-                "▶";
+        playPauseButton.textContent =
+            "▶";
 
 
-            centerPlayButton.style.display =
-                "flex";
-
-        }
+        centerPlayButton.style.display =
+            "flex";
 
     }
 );
@@ -778,7 +772,7 @@ forwardButton.addEventListener(
 
 
 // ==================================================
-// METADATA
+// VIDEO METADATA
 // ==================================================
 
 player.addEventListener(
@@ -796,7 +790,7 @@ player.addEventListener(
 
 
 // ==================================================
-// TIME UPDATE
+// VIDEO TIME UPDATE
 // ==================================================
 
 player.addEventListener(
@@ -871,8 +865,7 @@ progressSlider.addEventListener(
             (
                 percent /
                 100
-            )
-            *
+            ) *
             player.duration;
 
     }
@@ -969,7 +962,8 @@ function updateVolumeIcon() {
 
 
     if (
-        player.volume < 0.5
+        player.volume <
+        0.5
     ) {
 
         muteButton.textContent =
@@ -988,27 +982,74 @@ function updateVolumeIcon() {
 
 // ==================================================
 // FULLSCREEN
-// Android / Desktop
+// Desktop / Android / iPhone / iPad
 // ==================================================
 
 fullscreenButton.addEventListener(
     "click",
 
-    async function (
-        event
-    ) {
+    async function (event) {
 
         event.preventDefault();
-
         event.stopPropagation();
 
 
-        if (isIOS) {
-            return;
-        }
-
-
         try {
+
+            // ==========================================
+            // iPhone / iPad
+            // ==========================================
+
+            if (isIOS) {
+
+                /*
+                 * Apple's reliable fullscreen path is
+                 * fullscreen on the VIDEO element itself.
+                 */
+
+                if (
+                    typeof player.webkitEnterFullscreen ===
+                    "function"
+                ) {
+
+                    player.webkitEnterFullscreen();
+
+                    return;
+
+                }
+
+
+                if (
+                    typeof player.webkitEnterFullScreen ===
+                    "function"
+                ) {
+
+                    player.webkitEnterFullScreen();
+
+                    return;
+
+                }
+
+
+                /*
+                 * If Safari does not expose the method,
+                 * native controls are already enabled.
+                 * The user can use Safari's fullscreen icon.
+                 */
+
+                console.warn(
+                    "Use the native iOS video fullscreen button."
+                );
+
+                return;
+
+            }
+
+
+            // ==========================================
+            // STANDARD FULLSCREEN
+            // Chrome / Edge / Firefox / Android / Safari
+            // ==========================================
 
             if (
                 !document.fullscreenElement
@@ -1022,6 +1063,27 @@ fullscreenButton.addEventListener(
 
                     await playerContainer
                         .requestFullscreen();
+
+
+                    // Optional landscape lock on Android
+
+                    try {
+
+                        if (
+                            screen.orientation
+                            &&
+                            screen.orientation.lock
+                        ) {
+
+                            await screen.orientation
+                                .lock("landscape");
+
+                        }
+
+                    } catch {
+                        // Browser may reject orientation lock.
+                    }
+
 
                     return;
 
@@ -1040,17 +1102,17 @@ fullscreenButton.addEventListener(
                 }
 
 
-                // Last fallback:
-                // native video fullscreen if browser has it.
-
                 if (
-                    typeof player.webkitEnterFullscreen ===
-                    "function"
+                    player.requestFullscreen
                 ) {
 
-                    player.webkitEnterFullscreen();
+                    await player
+                        .requestFullscreen();
+
+                    return;
 
                 }
+
 
             } else {
 
@@ -1073,6 +1135,8 @@ fullscreenButton.addEventListener(
                     document
                         .webkitExitFullscreen();
 
+                    return;
+
                 }
 
             }
@@ -1085,6 +1149,31 @@ fullscreenButton.addEventListener(
                 error
             );
 
+
+            // Last iOS attempt
+
+            if (
+                isIOS
+                &&
+                typeof player.webkitEnterFullscreen ===
+                    "function"
+            ) {
+
+                try {
+
+                    player.webkitEnterFullscreen();
+
+                } catch (fallbackError) {
+
+                    console.error(
+                        "iOS fullscreen fallback failed:",
+                        fallbackError
+                    );
+
+                }
+
+            }
+
         }
 
     }
@@ -1092,24 +1181,19 @@ fullscreenButton.addEventListener(
 
 
 // ==================================================
-// FULLSCREEN CHANGE
+// FULLSCREEN STATE
 // ==================================================
 
 function updateFullscreenButton() {
 
-    if (isIOS) {
-        return;
-    }
-
-
-    const isFullscreen =
+    const active =
         document.fullscreenElement
         ||
         document.webkitFullscreenElement;
 
 
     fullscreenButton.textContent =
-        isFullscreen
+        active
             ? "✕"
             : "⛶";
 
@@ -1125,6 +1209,151 @@ document.addEventListener(
 document.addEventListener(
     "webkitfullscreenchange",
     updateFullscreenButton
+);
+
+
+player.addEventListener(
+    "webkitbeginfullscreen",
+
+    function () {
+
+        fullscreenButton.textContent =
+            "✕";
+
+    }
+);
+
+
+player.addEventListener(
+    "webkitendfullscreen",
+
+    function () {
+
+        fullscreenButton.textContent =
+            "⛶";
+
+    }
+);
+
+
+
+// ==================================================
+// FULLSCREEN DIAGNOSTIC
+// ==================================================
+
+diagnosticButton.addEventListener(
+    "click",
+
+    function (event) {
+
+        event.preventDefault();
+        event.stopPropagation();
+
+        const diagnostic = {
+
+            userAgent:
+                navigator.userAgent,
+
+            platform:
+                navigator.platform,
+
+            maxTouchPoints:
+                navigator.maxTouchPoints,
+
+            isIOS:
+                isIOS,
+
+            fullscreenEnabled:
+                document.fullscreenEnabled,
+
+            webkitFullscreenEnabled:
+                document.webkitFullscreenEnabled,
+
+            requestFullscreen:
+                typeof playerContainer.requestFullscreen,
+
+            webkitRequestFullscreen:
+                typeof playerContainer.webkitRequestFullscreen,
+
+            videoRequestFullscreen:
+                typeof player.requestFullscreen,
+
+            videoWebkitEnterFullscreen:
+                typeof player.webkitEnterFullscreen,
+
+            videoWebkitEnterFullScreen:
+                typeof player.webkitEnterFullScreen,
+
+            videoWebkitSupportsFullscreen:
+                player.webkitSupportsFullscreen,
+
+            videoReadyState:
+                player.readyState,
+
+            videoNetworkState:
+                player.networkState,
+
+            videoPaused:
+                player.paused,
+
+            videoCurrentTime:
+                player.currentTime,
+
+            videoDuration:
+                Number.isFinite(player.duration)
+                    ? player.duration
+                    : null,
+
+            documentFullscreenElement:
+                Boolean(
+                    document.fullscreenElement
+                ),
+
+            webkitFullscreenElement:
+                Boolean(
+                    document.webkitFullscreenElement
+                ),
+
+            currentVideoSrc:
+                player.currentSrc || player.src || ""
+
+        };
+
+
+        const output = [
+            "FULLSCREEN DIAGNOSTIC",
+            "",
+            `isIOS: ${diagnostic.isIOS}`,
+            `fullscreenEnabled: ${diagnostic.fullscreenEnabled}`,
+            `webkitFullscreenEnabled: ${diagnostic.webkitFullscreenEnabled}`,
+            `requestFullscreen: ${diagnostic.requestFullscreen}`,
+            `webkitRequestFullscreen: ${diagnostic.webkitRequestFullscreen}`,
+            `videoRequestFullscreen: ${diagnostic.videoRequestFullscreen}`,
+            `webkitEnterFullscreen: ${diagnostic.videoWebkitEnterFullscreen}`,
+            `webkitEnterFullScreen: ${diagnostic.videoWebkitEnterFullScreen}`,
+            `webkitSupportsFullscreen: ${diagnostic.videoWebkitSupportsFullscreen}`,
+            `readyState: ${diagnostic.videoReadyState}`,
+            `networkState: ${diagnostic.videoNetworkState}`,
+            `paused: ${diagnostic.videoPaused}`,
+            `currentTime: ${diagnostic.videoCurrentTime}`,
+            `duration: ${diagnostic.videoDuration}`,
+            `fullscreenElement: ${diagnostic.documentFullscreenElement}`,
+            `webkitFullscreenElement: ${diagnostic.webkitFullscreenElement}`,
+            "",
+            "User Agent:",
+            diagnostic.userAgent
+        ].join("\n");
+
+
+        alert(output);
+
+
+        console.log(
+            "FULLSCREEN DIAGNOSTIC:",
+            diagnostic
+        );
+
+    }
 );
 
 
@@ -1199,11 +1428,7 @@ document.addEventListener(
 
             case "f":
 
-                if (!isIOS) {
-
-                    fullscreenButton.click();
-
-                }
+                fullscreenButton.click();
 
                 break;
 
@@ -1225,11 +1450,6 @@ document.addEventListener(
 // ==================================================
 
 function showControls() {
-
-    if (isIOS) {
-        return;
-    }
-
 
     controls.classList.remove(
         "controls-hidden"
@@ -1264,32 +1484,28 @@ function showControls() {
 }
 
 
-if (!isIOS) {
-
-    playerContainer.addEventListener(
-        "mousemove",
-        showControls
-    );
+playerContainer.addEventListener(
+    "mousemove",
+    showControls
+);
 
 
-    playerContainer.addEventListener(
-        "touchstart",
-        showControls
-    );
+playerContainer.addEventListener(
+    "touchstart",
+    showControls
+);
 
 
-    player.addEventListener(
-        "pause",
-        showControls
-    );
+player.addEventListener(
+    "pause",
+    showControls
+);
 
 
-    player.addEventListener(
-        "play",
-        showControls
-    );
-
-}
+player.addEventListener(
+    "play",
+    showControls
+);
 
 
 // ==================================================
@@ -1319,20 +1535,24 @@ function formatTime(
 
     const hours =
         Math.floor(
-            totalSeconds / 3600
+            totalSeconds /
+            3600
         );
 
 
     const minutes =
         Math.floor(
             (
-                totalSeconds % 3600
-            ) / 60
+                totalSeconds %
+                3600
+            ) /
+            60
         );
 
 
     const secs =
-        totalSeconds % 60;
+        totalSeconds %
+        60;
 
 
     if (
@@ -1382,7 +1602,7 @@ function formatTime(
 
 
 // ==================================================
-// RESTORE PROGRESS
+// CONTINUE WATCHING - RESTORE
 // ==================================================
 
 function restoreProgress() {
@@ -1449,7 +1669,7 @@ function restoreProgress() {
 
 
 // ==================================================
-// SAVE PROGRESS
+// CONTINUE WATCHING - SAVE
 // ==================================================
 
 function saveProgress(
@@ -1481,7 +1701,8 @@ function saveProgress(
             duration:
                 player.duration,
 
-            percent
+            percent:
+                percent
 
         })
 
@@ -1701,7 +1922,8 @@ function renderRelatedMovies() {
 
 
             if (
-                related.length >= 10
+                related.length >=
+                10
             ) {
 
                 break;
@@ -1859,7 +2081,7 @@ function selectNextMovie() {
 
 
 // ==================================================
-// NEXT COUNTDOWN
+// NEXT MOVIE COUNTDOWN
 // ==================================================
 
 function startNextCountdown() {
