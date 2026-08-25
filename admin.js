@@ -17,6 +17,87 @@ let allMovies = [];
 
 
 // ==================================================
+// MULTI GENRE
+// ==================================================
+
+function parseGenres(
+    value
+) {
+
+    return String(
+        value || ""
+    )
+        .split(",")
+        .map(
+            genre =>
+                genre.trim()
+        )
+        .filter(Boolean);
+
+}
+
+
+function getUploadGenres() {
+
+    return Array
+        .from(
+            document.querySelectorAll(
+                ".upload-genre:checked"
+            )
+        )
+        .map(
+            checkbox =>
+                checkbox.value
+        );
+
+}
+
+
+function getEditGenres() {
+
+    return Array
+        .from(
+            document.querySelectorAll(
+                ".edit-genre:checked"
+            )
+        )
+        .map(
+            checkbox =>
+                checkbox.value
+        );
+
+}
+
+
+function setEditGenres(
+    genreString
+) {
+
+    const selected =
+        parseGenres(
+            genreString
+        );
+
+
+    document
+        .querySelectorAll(
+            ".edit-genre"
+        )
+        .forEach(
+            checkbox => {
+
+                checkbox.checked =
+                    selected.includes(
+                        checkbox.value
+                    );
+
+            }
+        );
+
+}
+
+
+// ==================================================
 // LOGIN CHECK
 // ==================================================
 
@@ -241,7 +322,6 @@ document
                     }
                 );
 
-
             } catch (error) {
 
                 console.error(
@@ -314,57 +394,40 @@ function updateStats() {
         new Set(
 
             allMovies
-                .map(
+                .flatMap(
                     movie =>
-                        movie.genre
+                        parseGenres(
+                            movie.genre
+                        )
                 )
-                .filter(Boolean)
 
         );
 
 
-    const totalMovies =
-        document.getElementById(
+    document
+        .getElementById(
             "totalMovies"
-        );
-
-
-    const totalGenres =
-        document.getElementById(
-            "totalGenres"
-        );
-
-
-    const latestMovie =
-        document.getElementById(
-            "latestMovie"
-        );
-
-
-    if (totalMovies) {
-
-        totalMovies.textContent =
+        )
+        .textContent =
             allMovies.length;
 
-    }
 
-
-    if (totalGenres) {
-
-        totalGenres.textContent =
+    document
+        .getElementById(
+            "totalGenres"
+        )
+        .textContent =
             genres.size;
 
-    }
 
-
-    if (latestMovie) {
-
-        latestMovie.textContent =
+    document
+        .getElementById(
+            "latestMovie"
+        )
+        .textContent =
             allMovies.length
                 ? allMovies[0].title
                 : "-";
-
-    }
 
 }
 
@@ -381,11 +444,6 @@ function renderMovies(
         document.getElementById(
             "movieList"
         );
-
-
-    if (!container) {
-        return;
-    }
 
 
     container.innerHTML =
@@ -496,15 +554,11 @@ function renderMovies(
 // SEARCH
 // ==================================================
 
-const movieSearch =
-    document.getElementById(
+document
+    .getElementById(
         "movieSearch"
-    );
-
-
-if (movieSearch) {
-
-    movieSearch.addEventListener(
+    )
+    .addEventListener(
         "input",
 
         function () {
@@ -550,8 +604,6 @@ if (movieSearch) {
         }
     );
 
-}
-
 
 // ==================================================
 // GENERATE UPLOAD ID
@@ -591,7 +643,7 @@ function createUploadId() {
 
 // ==================================================
 // UPLOAD MOVIE
-// TWO-STAGE PROGRESS
+// TWO-STAGE PROGRESS + MULTI GENRE
 // ==================================================
 
 const movieForm =
@@ -600,685 +652,260 @@ const movieForm =
     );
 
 
-if (movieForm) {
+movieForm.addEventListener(
+    "submit",
 
-    movieForm.addEventListener(
-        "submit",
+    function (
+        event
+    ) {
 
-        function (
-            event
+        event.preventDefault();
+
+
+        const selectedGenres =
+            getUploadGenres();
+
+
+        if (
+            selectedGenres.length === 0
         ) {
 
-            event.preventDefault();
+            alert(
+                "Please select at least one genre."
+            );
+
+            return;
+
+        }
 
 
-            const uploadId =
-                createUploadId();
+        document
+            .getElementById(
+                "genreValue"
+            )
+            .value =
+                selectedGenres.join(", ");
 
 
-            const message =
-                document.getElementById(
-                    "uploadMessage"
-                );
+        const uploadId =
+            createUploadId();
 
 
-            const panel =
-                document.getElementById(
-                    "uploadProgressPanel"
-                );
-
-
-            const serverBar =
-                document.getElementById(
-                    "serverProgressBar"
-                );
-
-
-            const serverText =
-                document.getElementById(
-                    "serverProgressText"
-                );
-
-
-            const r2Bar =
-                document.getElementById(
-                    "r2ProgressBar"
-                );
-
-
-            const r2Text =
-                document.getElementById(
-                    "r2ProgressText"
-                );
-
-
-            const stageMessage =
-                document.getElementById(
-                    "uploadStageMessage"
-                );
-
-
-            const button =
-                document.getElementById(
-                    "uploadButton"
-                );
-
-
-            // RESET UI
-
-            if (panel) {
-
-                panel.style.display =
-                    "block";
-
-            }
-
-
-            if (serverBar) {
-
-                serverBar.style.width =
-                    "0%";
-
-            }
-
-
-            if (serverText) {
-
-                serverText.textContent =
-                    "0%";
-
-            }
-
-
-            if (r2Bar) {
-
-                r2Bar.style.width =
-                    "0%";
-
-            }
-
-
-            if (r2Text) {
-
-                r2Text.textContent =
-                    "0%";
-
-            }
-
-
-            if (message) {
-
-                message.textContent =
-                    "";
-
-            }
-
-
-            if (stageMessage) {
-
-                stageMessage.textContent =
-                    "Preparing upload...";
-
-            }
-
-
-            if (button) {
-
-                button.disabled =
-                    true;
-
-
-                button.textContent =
-                    "Uploading...";
-
-            }
-
-
-            const formData =
-                new FormData(
-                    movieForm
-                );
-
-
-            formData.append(
-                "uploadId",
-                uploadId
+        const message =
+            document.getElementById(
+                "uploadMessage"
             );
 
 
-            // ==================================================
-            // SSE
-            // RAILWAY → R2
-            // ==================================================
-
-            let events =
-                null;
+        const panel =
+            document.getElementById(
+                "uploadProgressPanel"
+            );
 
 
-            try {
-
-                events =
-                    new EventSource(
-
-                        `/api/upload-progress/${encodeURIComponent(uploadId)}`
-
-                    );
+        const serverBar =
+            document.getElementById(
+                "serverProgressBar"
+            );
 
 
-                events.onmessage =
-                    function (
-                        event
-                    ) {
-
-                        try {
-
-                            const data =
-                                JSON.parse(
-                                    event.data
-                                );
+        const serverText =
+            document.getElementById(
+                "serverProgressText"
+            );
 
 
-                            if (
-                                data.stage ===
-                                "r2"
-                            ) {
-
-                                const percent =
-                                    Math.min(
-                                        100,
-
-                                        Math.max(
-                                            0,
-
-                                            Number(
-                                                data.r2Percent || 0
-                                            )
-                                        )
-                                    );
+        const r2Bar =
+            document.getElementById(
+                "r2ProgressBar"
+            );
 
 
-                                if (r2Bar) {
-
-                                    r2Bar.style.width =
-                                        `${percent}%`;
-
-                                }
+        const r2Text =
+            document.getElementById(
+                "r2ProgressText"
+            );
 
 
-                                if (r2Text) {
-
-                                    r2Text.textContent =
-                                        `${percent}%`;
-
-                                }
+        const stageMessage =
+            document.getElementById(
+                "uploadStageMessage"
+            );
 
 
-                                if (stageMessage) {
-
-                                    stageMessage.textContent =
-                                        data.message
-                                        ||
-                                        "Uploading to Cloudflare R2...";
-
-                                }
-
-                            }
+        const button =
+            document.getElementById(
+                "uploadButton"
+            );
 
 
-                            if (
-                                data.stage ===
-                                "done"
-                            ) {
-
-                                if (r2Bar) {
-
-                                    r2Bar.style.width =
-                                        "100%";
-
-                                }
+        panel.style.display =
+            "block";
 
 
-                                if (r2Text) {
-
-                                    r2Text.textContent =
-                                        "100%";
-
-                                }
+        serverBar.style.width =
+            "0%";
 
 
-                                if (stageMessage) {
-
-                                    stageMessage.textContent =
-                                        "Finalizing upload...";
-
-                                }
+        serverText.textContent =
+            "0%";
 
 
-                                events.close();
-
-                            }
-
-
-                            if (
-                                data.stage ===
-                                "error"
-                            ) {
-
-                                console.error(
-                                    "SSE reported upload error:",
-                                    data.message
-                                );
+        r2Bar.style.width =
+            "0%";
 
 
-                                /*
-                                 * IMPORTANT:
-                                 * Do NOT mark the whole upload
-                                 * as failed here.
-                                 *
-                                 * XHR response remains the
-                                 * source of truth.
-                                 */
+        r2Text.textContent =
+            "0%";
 
 
-                                if (stageMessage) {
-
-                                    stageMessage.textContent =
-                                        data.message
-                                        ||
-                                        "Finishing upload...";
-
-                                }
+        message.textContent =
+            "";
 
 
-                                events.close();
+        stageMessage.textContent =
+            "Preparing upload...";
 
-                            }
+
+        button.disabled =
+            true;
 
 
-                        } catch (error) {
+        button.textContent =
+            "Uploading...";
 
-                            console.error(
-                                "Invalid SSE response:",
-                                error
+
+        const formData =
+            new FormData(
+                movieForm
+            );
+
+
+        formData.append(
+            "uploadId",
+            uploadId
+        );
+
+
+        let events =
+            null;
+
+
+        try {
+
+            events =
+                new EventSource(
+
+                    `/api/upload-progress/${encodeURIComponent(uploadId)}`
+
+                );
+
+
+            events.onmessage =
+                function (
+                    event
+                ) {
+
+                    try {
+
+                        const data =
+                            JSON.parse(
+                                event.data
                             );
+
+
+                        if (
+                            data.stage ===
+                            "r2"
+                        ) {
+
+                            const percent =
+                                Math.min(
+                                    100,
+
+                                    Math.max(
+                                        0,
+
+                                        Number(
+                                            data.r2Percent || 0
+                                        )
+                                    )
+                                );
+
+
+                            r2Bar.style.width =
+                                `${percent}%`;
+
+
+                            r2Text.textContent =
+                                `${percent}%`;
+
+
+                            stageMessage.textContent =
+                                data.message
+                                ||
+                                "Uploading to Cloudflare R2...";
 
                         }
 
-                    };
+
+                        if (
+                            data.stage ===
+                            "done"
+                        ) {
+
+                            r2Bar.style.width =
+                                "100%";
 
 
-                events.onerror =
-                    function (
-                        error
-                    ) {
-
-                        /*
-                         * SSE can disconnect when the
-                         * server closes the stream.
-                         * This must NOT mean the upload failed.
-                         */
-
-                        console.warn(
-                            "Upload progress connection closed.",
-                            error
-                        );
+                            r2Text.textContent =
+                                "100%";
 
 
-                        if (events) {
+                            stageMessage.textContent =
+                                "Finalizing upload...";
+
 
                             events.close();
 
                         }
 
-                    };
-
-
-            } catch (error) {
-
-                console.warn(
-                    "Could not start SSE progress:",
-                    error
-                );
-
-            }
-
-
-            // ==================================================
-            // XHR
-            // BROWSER → RAILWAY
-            // ==================================================
-
-            const xhr =
-                new XMLHttpRequest();
-
-
-            xhr.open(
-                "POST",
-                "/api/movies/upload",
-                true
-            );
-
-
-            xhr.upload.addEventListener(
-                "progress",
-
-                function (
-                    event
-                ) {
-
-                    if (
-                        !event.lengthComputable
-                    ) {
-
-                        return;
-
-                    }
-
-
-                    const percent =
-                        Math.min(
-                            100,
-
-                            Math.round(
-                                (
-                                    event.loaded
-                                    /
-                                    event.total
-                                )
-                                *
-                                100
-                            )
-                        );
-
-
-                    if (serverBar) {
-
-                        serverBar.style.width =
-                            `${percent}%`;
-
-                    }
-
-
-                    if (serverText) {
-
-                        serverText.textContent =
-                            `${percent}%`;
-
-                    }
-
-
-                    if (stageMessage) {
 
                         if (
-                            percent < 100
+                            data.stage ===
+                            "error"
                         ) {
 
-                            stageMessage.textContent =
-                                `Uploading to server... ${percent}%`;
+                            console.error(
+                                "SSE reported upload error:",
+                                data.message
+                            );
 
-                        } else {
 
                             stageMessage.textContent =
-                                "Server received file. Uploading to Cloudflare R2...";
+                                data.message
+                                ||
+                                "Finishing upload...";
+
+
+                            events.close();
 
                         }
 
-                    }
-
-                }
-            );
-
-
-            // ==================================================
-            // REAL FINAL RESULT
-            // XHR RESPONSE IS SOURCE OF TRUTH
-            // ==================================================
-
-            xhr.addEventListener(
-                "load",
-
-                async function () {
-
-                    let data = {};
-
-
-                    try {
-
-                        if (
-                            xhr.responseText
-                        ) {
-
-                            data =
-                                JSON.parse(
-                                    xhr.responseText
-                                );
-
-                        }
 
                     } catch (error) {
 
                         console.error(
-                            "Invalid server response:",
-                            xhr.responseText
-                        );
-
-                    }
-
-
-                    // Close progress stream
-
-                    if (events) {
-
-                        events.close();
-
-                    }
-
-
-                    // SESSION EXPIRED
-
-                    if (
-                        xhr.status === 401
-                    ) {
-
-                        resetUploadButton(
-                            button
-                        );
-
-
-                        showLogin();
-
-
-                        return;
-
-                    }
-
-
-                    // ==================================================
-                    // HTTP ERROR
-                    // ==================================================
-
-                    if (
-                        xhr.status < 200
-                        ||
-                        xhr.status >= 300
-                    ) {
-
-                        console.error(
-                            "Upload failed:",
-                            xhr.status,
-                            xhr.responseText
-                        );
-
-
-                        if (message) {
-
-                            message.textContent =
-                                data.error
-                                ||
-                                `Upload failed (${xhr.status})`;
-
-                        }
-
-
-                        if (stageMessage) {
-
-                            stageMessage.textContent =
-                                data.error
-                                ||
-                                "Server failed to save movie";
-
-                        }
-
-
-                        resetUploadButton(
-                            button
-                        );
-
-
-                        return;
-
-                    }
-
-
-                    // ==================================================
-                    // SUCCESS
-                    // ==================================================
-
-                    if (serverBar) {
-
-                        serverBar.style.width =
-                            "100%";
-
-                    }
-
-
-                    if (serverText) {
-
-                        serverText.textContent =
-                            "100%";
-
-                    }
-
-
-                    if (r2Bar) {
-
-                        r2Bar.style.width =
-                            "100%";
-
-                    }
-
-
-                    if (r2Text) {
-
-                        r2Text.textContent =
-                            "100%";
-
-                    }
-
-
-                    if (stageMessage) {
-
-                        stageMessage.textContent =
-                            "✓ Upload complete";
-
-                    }
-
-
-                    if (message) {
-
-                        message.textContent =
-                            "✓ Movie uploaded successfully";
-
-                    }
-
-
-                    movieForm.reset();
-
-
-                    /*
-                     * Reload movie list.
-                     *
-                     * Even if this fails, do NOT
-                     * change upload status to failed.
-                     */
-
-                    try {
-
-                        await loadMovies();
-
-                    } catch (error) {
-
-                        console.error(
-                            "Movie uploaded but list refresh failed:",
+                            "Invalid SSE response:",
                             error
                         );
 
                     }
 
-
-                    resetUploadButton(
-                        button
-                    );
+                };
 
 
-                    setTimeout(
-                        function () {
-
-                            if (panel) {
-
-                                panel.style.display =
-                                    "none";
-
-                            }
-
-
-                            if (serverBar) {
-
-                                serverBar.style.width =
-                                    "0%";
-
-                            }
-
-
-                            if (serverText) {
-
-                                serverText.textContent =
-                                    "0%";
-
-                            }
-
-
-                            if (r2Bar) {
-
-                                r2Bar.style.width =
-                                    "0%";
-
-                            }
-
-
-                            if (r2Text) {
-
-                                r2Text.textContent =
-                                    "0%";
-
-                            }
-
-                        },
-
-                        2500
-                    );
-
-                }
-            );
-
-
-            // ==================================================
-            // NETWORK ERROR
-            // ==================================================
-
-            xhr.addEventListener(
-                "error",
-
+            events.onerror =
                 function () {
 
                     if (events) {
@@ -1287,128 +914,296 @@ if (movieForm) {
 
                     }
 
-
-                    if (message) {
-
-                        message.textContent =
-                            "Network error";
-
-                    }
+                };
 
 
-                    if (stageMessage) {
+        } catch (error) {
 
-                        stageMessage.textContent =
-                            "Connection to server failed";
-
-                    }
-
-
-                    resetUploadButton(
-                        button
-                    );
-
-                }
-            );
-
-
-            // ==================================================
-            // ABORT
-            // ==================================================
-
-            xhr.addEventListener(
-                "abort",
-
-                function () {
-
-                    if (events) {
-
-                        events.close();
-
-                    }
-
-
-                    if (message) {
-
-                        message.textContent =
-                            "Upload cancelled";
-
-                    }
-
-
-                    if (stageMessage) {
-
-                        stageMessage.textContent =
-                            "Upload cancelled";
-
-                    }
-
-
-                    resetUploadButton(
-                        button
-                    );
-
-                }
-            );
-
-
-            // ==================================================
-            // TIMEOUT
-            // ==================================================
-
-            xhr.addEventListener(
-                "timeout",
-
-                function () {
-
-                    if (events) {
-
-                        events.close();
-
-                    }
-
-
-                    if (message) {
-
-                        message.textContent =
-                            "Upload timed out";
-
-                    }
-
-
-                    if (stageMessage) {
-
-                        stageMessage.textContent =
-                            "Server took too long to respond";
-
-                    }
-
-
-                    resetUploadButton(
-                        button
-                    );
-
-                }
-            );
-
-
-            /*
-             * 0 = no browser-side timeout.
-             * Large movie uploads may take a while.
-             */
-
-            xhr.timeout =
-                0;
-
-
-            xhr.send(
-                formData
+            console.warn(
+                "Could not start SSE progress:",
+                error
             );
 
         }
-    );
 
-}
+
+        const xhr =
+            new XMLHttpRequest();
+
+
+        xhr.open(
+            "POST",
+            "/api/movies/upload",
+            true
+        );
+
+
+        xhr.upload.addEventListener(
+            "progress",
+
+            function (
+                event
+            ) {
+
+                if (
+                    !event.lengthComputable
+                ) {
+
+                    return;
+
+                }
+
+
+                const percent =
+                    Math.min(
+                        100,
+
+                        Math.round(
+                            (
+                                event.loaded
+                                /
+                                event.total
+                            )
+                            *
+                            100
+                        )
+                    );
+
+
+                serverBar.style.width =
+                    `${percent}%`;
+
+
+                serverText.textContent =
+                    `${percent}%`;
+
+
+                if (
+                    percent < 100
+                ) {
+
+                    stageMessage.textContent =
+                        `Uploading to server... ${percent}%`;
+
+                } else {
+
+                    stageMessage.textContent =
+                        "Server received file. Uploading to Cloudflare R2...";
+
+                }
+
+            }
+        );
+
+
+        xhr.addEventListener(
+            "load",
+
+            async function () {
+
+                let data = {};
+
+
+                try {
+
+                    if (
+                        xhr.responseText
+                    ) {
+
+                        data =
+                            JSON.parse(
+                                xhr.responseText
+                            );
+
+                    }
+
+                } catch (error) {
+
+                    console.error(
+                        "Invalid server response:",
+                        xhr.responseText
+                    );
+
+                }
+
+
+                if (events) {
+
+                    events.close();
+
+                }
+
+
+                if (
+                    xhr.status === 401
+                ) {
+
+                    resetUploadButton(
+                        button
+                    );
+
+
+                    showLogin();
+
+
+                    return;
+
+                }
+
+
+                if (
+                    xhr.status < 200
+                    ||
+                    xhr.status >= 300
+                ) {
+
+                    console.error(
+                        "Upload failed:",
+                        xhr.status,
+                        xhr.responseText
+                    );
+
+
+                    message.textContent =
+                        data.error
+                        ||
+                        `Upload failed (${xhr.status})`;
+
+
+                    stageMessage.textContent =
+                        data.error
+                        ||
+                        "Server failed to save movie";
+
+
+                    resetUploadButton(
+                        button
+                    );
+
+
+                    return;
+
+                }
+
+
+                serverBar.style.width =
+                    "100%";
+
+
+                serverText.textContent =
+                    "100%";
+
+
+                r2Bar.style.width =
+                    "100%";
+
+
+                r2Text.textContent =
+                    "100%";
+
+
+                stageMessage.textContent =
+                    "✓ Upload complete";
+
+
+                message.textContent =
+                    "✓ Movie uploaded successfully";
+
+
+                movieForm.reset();
+
+
+                document
+                    .querySelectorAll(
+                        ".upload-genre"
+                    )
+                    .forEach(
+                        checkbox => {
+
+                            checkbox.checked =
+                                false;
+
+                        }
+                    );
+
+
+                await loadMovies();
+
+
+                resetUploadButton(
+                    button
+                );
+
+
+                setTimeout(
+                    function () {
+
+                        panel.style.display =
+                            "none";
+
+
+                        serverBar.style.width =
+                            "0%";
+
+
+                        serverText.textContent =
+                            "0%";
+
+
+                        r2Bar.style.width =
+                            "0%";
+
+
+                        r2Text.textContent =
+                            "0%";
+
+                    },
+
+                    2500
+                );
+
+            }
+        );
+
+
+        xhr.addEventListener(
+            "error",
+
+            function () {
+
+                if (events) {
+
+                    events.close();
+
+                }
+
+
+                message.textContent =
+                    "Network error";
+
+
+                stageMessage.textContent =
+                    "Connection to server failed";
+
+
+                resetUploadButton(
+                    button
+                );
+
+            }
+        );
+
+
+        xhr.timeout =
+            0;
+
+
+        xhr.send(
+            formData
+        );
+
+    }
+);
 
 
 // ==================================================
@@ -1418,11 +1213,6 @@ if (movieForm) {
 function resetUploadButton(
     button
 ) {
-
-    if (!button) {
-        return;
-    }
-
 
     button.disabled =
         false;
@@ -1487,14 +1277,6 @@ function editMovie(
 
     document
         .getElementById(
-            "editGenre"
-        )
-        .value =
-            movie.genre || "";
-
-
-    document
-        .getElementById(
             "editRating"
         )
         .value =
@@ -1507,6 +1289,11 @@ function editMovie(
         )
         .value =
             movie.duration || "";
+
+
+    setEditGenres(
+        movie.genre
+    );
 
 
     document
@@ -1569,18 +1356,12 @@ function editMovie(
 
 function closeEditModal() {
 
-    const modal =
-        document.getElementById(
+    document
+        .getElementById(
             "editModal"
-        );
-
-
-    if (modal) {
-
-        modal.style.display =
+        )
+        .style.display =
             "none";
-
-    }
 
 
     document.body.style.overflow =
@@ -1611,54 +1392,6 @@ document
 
 document
     .getElementById(
-        "editModal"
-    )
-    .addEventListener(
-        "click",
-
-        function (
-            event
-        ) {
-
-            if (
-                event.target ===
-                this
-            ) {
-
-                closeEditModal();
-
-            }
-
-        }
-    );
-
-
-document.addEventListener(
-    "keydown",
-
-    function (
-        event
-    ) {
-
-        if (
-            event.key ===
-            "Escape"
-        ) {
-
-            closeEditModal();
-
-        }
-
-    }
-);
-
-
-// ==================================================
-// NEW POSTER PREVIEW
-// ==================================================
-
-document
-    .getElementById(
         "editPoster"
     )
     .addEventListener(
@@ -1675,16 +1408,14 @@ document
             }
 
 
-            const preview =
-                document.getElementById(
+            document
+                .getElementById(
                     "editPosterPreview"
-                );
-
-
-            preview.src =
-                URL.createObjectURL(
-                    file
-                );
+                )
+                .src =
+                    URL.createObjectURL(
+                        file
+                    );
 
         }
     );
@@ -1722,6 +1453,22 @@ document
                 );
 
 
+            const selectedEditGenres =
+                getEditGenres();
+
+
+            if (
+                selectedEditGenres.length === 0
+            ) {
+
+                message.textContent =
+                    "Please select at least one genre.";
+
+                return;
+
+            }
+
+
             const formData =
                 new FormData();
 
@@ -1752,12 +1499,7 @@ document
             formData.append(
                 "genre",
 
-                document
-                    .getElementById(
-                        "editGenre"
-                    )
-                    .value
-                    .trim()
+                selectedEditGenres.join(", ")
             );
 
 
@@ -1935,14 +1677,14 @@ async function deleteMovie(
     }
 
 
-    const confirmed =
-        confirm(
+    if (
+        !confirm(
             `Delete "${movie.title}"?`
-        );
+        )
+    ) {
 
-
-    if (!confirmed) {
         return;
+
     }
 
 
@@ -1959,17 +1701,8 @@ async function deleteMovie(
             );
 
 
-        let data = {};
-
-
-        try {
-
-            data =
-                await response.json();
-
-        } catch {
-            // ignore
-        }
+        const data =
+            await response.json();
 
 
         if (

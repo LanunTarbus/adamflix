@@ -69,6 +69,53 @@ const mobileSearch =
 
 
 // ==================================================
+// MULTI GENRE
+// ==================================================
+
+function parseGenres(
+    value
+) {
+
+    return String(
+        value || ""
+    )
+        .split(",")
+        .map(
+            genre =>
+                genre.trim()
+        )
+        .filter(Boolean);
+
+}
+
+
+function movieHasGenre(
+    movie,
+    genre
+) {
+
+    if (
+        genre === "All"
+    ) {
+
+        return true;
+
+    }
+
+
+    return parseGenres(
+        movie.genre
+    )
+        .some(
+            item =>
+                item.toLowerCase() ===
+                genre.toLowerCase()
+        );
+
+}
+
+
+// ==================================================
 // SKELETONS
 // ==================================================
 
@@ -330,12 +377,15 @@ function renderGenres() {
     const genres =
         [
             ...new Set(
+
                 movies
-                    .map(
+                    .flatMap(
                         movie =>
-                            movie.genre
+                            parseGenres(
+                                movie.genre
+                            )
                     )
-                    .filter(Boolean)
+
             )
         ]
         .sort();
@@ -902,10 +952,10 @@ function performSearch(
 
 
                 const matchesGenre =
-                    selectedGenre === "All"
-                    ||
-                    movie.genre ===
-                        selectedGenre;
+                    movieHasGenre(
+                        movie,
+                        selectedGenre
+                    );
 
 
                 return (

@@ -219,14 +219,6 @@
 
 
                 <input
-                    type="text"
-                    name="genre"
-                    placeholder="Genre"
-                    required
-                >
-
-
-                <input
                     type="number"
                     name="rating"
                     placeholder="Rating"
@@ -243,6 +235,44 @@
                     placeholder="Duration"
                     required
                 >
+
+
+                <!-- MULTI GENRE -->
+
+                <div class="genre-admin-box">
+
+                    <label class="genre-admin-title">
+                        Genres
+                    </label>
+
+                    <input
+                        type="hidden"
+                        name="genre"
+                        id="genreValue"
+                    >
+
+                    <div class="genre-checkbox-grid">
+
+                        <label><input type="checkbox" class="upload-genre" value="Action">Action</label>
+                        <label><input type="checkbox" class="upload-genre" value="Adventure">Adventure</label>
+                        <label><input type="checkbox" class="upload-genre" value="Animation">Animation</label>
+                        <label><input type="checkbox" class="upload-genre" value="Comedy">Comedy</label>
+                        <label><input type="checkbox" class="upload-genre" value="Crime">Crime</label>
+                        <label><input type="checkbox" class="upload-genre" value="Drama">Drama</label>
+                        <label><input type="checkbox" class="upload-genre" value="Fantasy">Fantasy</label>
+                        <label><input type="checkbox" class="upload-genre" value="Horror">Horror</label>
+                        <label><input type="checkbox" class="upload-genre" value="Mystery">Mystery</label>
+                        <label><input type="checkbox" class="upload-genre" value="Romance">Romance</label>
+                        <label><input type="checkbox" class="upload-genre" value="Sci-Fi">Sci-Fi</label>
+                        <label><input type="checkbox" class="upload-genre" value="Thriller">Thriller</label>
+                        <label><input type="checkbox" class="upload-genre" value="Family">Family</label>
+                        <label><input type="checkbox" class="upload-genre" value="Documentary">Documentary</label>
+                        <label><input type="checkbox" class="upload-genre" value="War">War</label>
+                        <label><input type="checkbox" class="upload-genre" value="History">History</label>
+
+                    </div>
+
+                </div>
 
             </div>
 
@@ -318,8 +348,6 @@
             >
 
 
-                <!-- STAGE 1 -->
-
                 <div class="upload-stage">
 
                     <div class="upload-stage-header">
@@ -349,8 +377,6 @@
 
                 </div>
 
-
-                <!-- STAGE 2 -->
 
                 <div class="upload-stage">
 
@@ -507,21 +533,6 @@
                 <div>
 
                     <label>
-                        Genre
-                    </label>
-
-                    <input
-                        type="text"
-                        id="editGenre"
-                        required
-                    >
-
-                </div>
-
-
-                <div>
-
-                    <label>
                         Rating
                     </label>
 
@@ -551,6 +562,36 @@
 
                 </div>
 
+
+            </div>
+
+
+            <div class="genre-admin-box">
+
+                <label class="genre-admin-title">
+                    Genres
+                </label>
+
+                <div class="genre-checkbox-grid">
+
+                    <label><input type="checkbox" class="edit-genre" value="Action">Action</label>
+                    <label><input type="checkbox" class="edit-genre" value="Adventure">Adventure</label>
+                    <label><input type="checkbox" class="edit-genre" value="Animation">Animation</label>
+                    <label><input type="checkbox" class="edit-genre" value="Comedy">Comedy</label>
+                    <label><input type="checkbox" class="edit-genre" value="Crime">Crime</label>
+                    <label><input type="checkbox" class="edit-genre" value="Drama">Drama</label>
+                    <label><input type="checkbox" class="edit-genre" value="Fantasy">Fantasy</label>
+                    <label><input type="checkbox" class="edit-genre" value="Horror">Horror</label>
+                    <label><input type="checkbox" class="edit-genre" value="Mystery">Mystery</label>
+                    <label><input type="checkbox" class="edit-genre" value="Romance">Romance</label>
+                    <label><input type="checkbox" class="edit-genre" value="Sci-Fi">Sci-Fi</label>
+                    <label><input type="checkbox" class="edit-genre" value="Thriller">Thriller</label>
+                    <label><input type="checkbox" class="edit-genre" value="Family">Family</label>
+                    <label><input type="checkbox" class="edit-genre" value="Documentary">Documentary</label>
+                    <label><input type="checkbox" class="edit-genre" value="War">War</label>
+                    <label><input type="checkbox" class="edit-genre" value="History">History</label>
+
+                </div>
 
             </div>
 
