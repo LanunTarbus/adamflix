@@ -932,6 +932,7 @@ function updateVolumeIcon() {
 
 // ==================================================
 // FULLSCREEN
+// Desktop + Android + iPhone / iOS Safari
 // ==================================================
 
 fullscreenButton.addEventListener(
@@ -941,17 +942,93 @@ fullscreenButton.addEventListener(
 
         try {
 
+            // iPhone / iOS Safari native video fullscreen
             if (
-                !document.fullscreenElement
+                typeof player.webkitEnterFullscreen === "function"
+                &&
+                !document.fullscreenEnabled
             ) {
 
-                await playerContainer
-                    .requestFullscreen();
+                player.webkitEnterFullscreen();
+
+                return;
+
+            }
+
+
+            // Standard fullscreen
+            if (
+                !document.fullscreenElement
+                &&
+                !document.webkitFullscreenElement
+            ) {
+
+                if (
+                    playerContainer.requestFullscreen
+                ) {
+
+                    await playerContainer
+                        .requestFullscreen();
+
+                    return;
+
+                }
+
+
+                // Safari fallback
+                if (
+                    playerContainer.webkitRequestFullscreen
+                ) {
+
+                    playerContainer
+                        .webkitRequestFullscreen();
+
+                    return;
+
+                }
+
+
+                // Last fallback: native video fullscreen
+                if (
+                    typeof player.webkitEnterFullscreen === "function"
+                ) {
+
+                    player.webkitEnterFullscreen();
+
+                    return;
+
+                }
+
+
+                console.warn(
+                    "Fullscreen is not supported on this browser."
+                );
 
             } else {
 
-                await document
-                    .exitFullscreen();
+                // Exit standard fullscreen
+                if (
+                    document.exitFullscreen
+                ) {
+
+                    await document
+                        .exitFullscreen();
+
+                    return;
+
+                }
+
+
+                if (
+                    document.webkitExitFullscreen
+                ) {
+
+                    document
+                        .webkitExitFullscreen();
+
+                    return;
+
+                }
 
             }
 
@@ -962,7 +1039,88 @@ fullscreenButton.addEventListener(
                 error
             );
 
+
+            // iOS emergency fallback
+            try {
+
+                if (
+                    typeof player.webkitEnterFullscreen === "function"
+                ) {
+
+                    player.webkitEnterFullscreen();
+
+                }
+
+            } catch (fallbackError) {
+
+                console.error(
+                    "iOS fullscreen fallback failed:",
+                    fallbackError
+                );
+
+            }
+
         }
+
+    }
+);
+
+
+// ==================================================
+// FULLSCREEN CHANGE
+// ==================================================
+
+function updateFullscreenButton() {
+
+    const isFullscreen =
+        document.fullscreenElement
+        ||
+        document.webkitFullscreenElement;
+
+
+    fullscreenButton.textContent =
+        isFullscreen
+            ? "✕"
+            : "⛶";
+
+}
+
+
+document.addEventListener(
+    "fullscreenchange",
+    updateFullscreenButton
+);
+
+
+document.addEventListener(
+    "webkitfullscreenchange",
+    updateFullscreenButton
+);
+
+
+// ==================================================
+// iOS VIDEO FULLSCREEN EVENTS
+// ==================================================
+
+player.addEventListener(
+    "webkitbeginfullscreen",
+
+    function () {
+
+        fullscreenButton.textContent =
+            "✕";
+
+    }
+);
+
+
+player.addEventListener(
+    "webkitendfullscreen",
+
+    function () {
+
+        fullscreenButton.textContent =
+            "⛶";
 
     }
 );
