@@ -52,35 +52,6 @@
     >
 
 
-        <!-- FULLSCREEN DIAGNOSTIC BUTTON -->
-        <button
-            id="diagnosticButton"
-            type="button"
-            title="Fullscreen Diagnostic"
-            style="
-                position:absolute;
-                top:10px;
-                right:10px;
-                z-index:9999;
-                width:42px;
-                height:42px;
-                border:none;
-                border-radius:50%;
-                background:#d40000;
-                color:#ffffff;
-                font-size:20px;
-                font-weight:bold;
-                line-height:42px;
-                text-align:center;
-                padding:0;
-                box-shadow:0 4px 16px rgba(0,0,0,.45);
-                cursor:pointer;
-            "
-        >
-            ?
-        </button>
-
-
         <video
             id="videoPlayer"
             preload="metadata"
@@ -220,7 +191,9 @@
                     >
                         ⛶
                     </button>
-</div>
+
+
+                </div>
 
 
             </div>
@@ -461,48 +434,6 @@ const fullscreenButton =
     document.getElementById(
         "fullscreenButton"
     );
-
-
-const diagnosticButton =
-    document.getElementById(
-        "diagnosticButton"
-    );
-
-
-
-
-// ==================================================
-// iOS / iPadOS DETECTION
-// ==================================================
-
-const isIOS =
-    /iPhone|iPad|iPod/i.test(
-        navigator.userAgent
-    )
-    ||
-    (
-        navigator.platform === "MacIntel"
-        &&
-        navigator.maxTouchPoints > 1
-    );
-
-
-/*
- * iPhone/iPad Safari is most reliable with the
- * browser's native <video> controls. Native controls
- * provide Apple's own fullscreen button.
- */
-if (isIOS) {
-
-    player.controls = true;
-
-    controls.style.display =
-        "none";
-
-    centerPlayButton.style.display =
-        "none";
-
-}
 
 
 let currentMovie = null;
@@ -1001,75 +932,31 @@ function updateVolumeIcon() {
 
 // ==================================================
 // FULLSCREEN
-// Desktop / Android / iPhone / iPad
+// Desktop + Android + iPhone / iOS Safari
 // ==================================================
 
 fullscreenButton.addEventListener(
     "click",
 
-    async function (event) {
-
-        event.preventDefault();
-        event.stopPropagation();
-
+    async function () {
 
         try {
 
-            // ==========================================
-            // iPhone / iPad
-            // ==========================================
+            // iPhone / iOS Safari native video fullscreen
+            if (
+                typeof player.webkitEnterFullscreen === "function"
+                &&
+                !document.fullscreenEnabled
+            ) {
 
-            if (isIOS) {
-
-                /*
-                 * Apple's reliable fullscreen path is
-                 * fullscreen on the VIDEO element itself.
-                 */
-
-                if (
-                    typeof player.webkitEnterFullscreen ===
-                    "function"
-                ) {
-
-                    player.webkitEnterFullscreen();
-
-                    return;
-
-                }
-
-
-                if (
-                    typeof player.webkitEnterFullScreen ===
-                    "function"
-                ) {
-
-                    player.webkitEnterFullScreen();
-
-                    return;
-
-                }
-
-
-                /*
-                 * If Safari does not expose the method,
-                 * native controls are already enabled.
-                 * The user can use Safari's fullscreen icon.
-                 */
-
-                console.warn(
-                    "Use the native iOS video fullscreen button."
-                );
+                player.webkitEnterFullscreen();
 
                 return;
 
             }
 
 
-            // ==========================================
-            // STANDARD FULLSCREEN
-            // Chrome / Edge / Firefox / Android / Safari
-            // ==========================================
-
+            // Standard fullscreen
             if (
                 !document.fullscreenElement
                 &&
@@ -1083,32 +970,12 @@ fullscreenButton.addEventListener(
                     await playerContainer
                         .requestFullscreen();
 
-
-                    // Optional landscape lock on Android
-
-                    try {
-
-                        if (
-                            screen.orientation
-                            &&
-                            screen.orientation.lock
-                        ) {
-
-                            await screen.orientation
-                                .lock("landscape");
-
-                        }
-
-                    } catch {
-                        // Browser may reject orientation lock.
-                    }
-
-
                     return;
 
                 }
 
 
+                // Safari fallback
                 if (
                     playerContainer.webkitRequestFullscreen
                 ) {
@@ -1121,20 +988,25 @@ fullscreenButton.addEventListener(
                 }
 
 
+                // Last fallback: native video fullscreen
                 if (
-                    player.requestFullscreen
+                    typeof player.webkitEnterFullscreen === "function"
                 ) {
 
-                    await player
-                        .requestFullscreen();
+                    player.webkitEnterFullscreen();
 
                     return;
 
                 }
 
 
+                console.warn(
+                    "Fullscreen is not supported on this browser."
+                );
+
             } else {
 
+                // Exit standard fullscreen
                 if (
                     document.exitFullscreen
                 ) {
@@ -1160,7 +1032,6 @@ fullscreenButton.addEventListener(
 
             }
 
-
         } catch (error) {
 
             console.error(
@@ -1169,27 +1040,23 @@ fullscreenButton.addEventListener(
             );
 
 
-            // Last iOS attempt
+            // iOS emergency fallback
+            try {
 
-            if (
-                isIOS
-                &&
-                typeof player.webkitEnterFullscreen ===
-                    "function"
-            ) {
-
-                try {
+                if (
+                    typeof player.webkitEnterFullscreen === "function"
+                ) {
 
                     player.webkitEnterFullscreen();
 
-                } catch (fallbackError) {
-
-                    console.error(
-                        "iOS fullscreen fallback failed:",
-                        fallbackError
-                    );
-
                 }
+
+            } catch (fallbackError) {
+
+                console.error(
+                    "iOS fullscreen fallback failed:",
+                    fallbackError
+                );
 
             }
 
@@ -1200,19 +1067,19 @@ fullscreenButton.addEventListener(
 
 
 // ==================================================
-// FULLSCREEN STATE
+// FULLSCREEN CHANGE
 // ==================================================
 
 function updateFullscreenButton() {
 
-    const active =
+    const isFullscreen =
         document.fullscreenElement
         ||
         document.webkitFullscreenElement;
 
 
     fullscreenButton.textContent =
-        active
+        isFullscreen
             ? "✕"
             : "⛶";
 
@@ -1230,6 +1097,10 @@ document.addEventListener(
     updateFullscreenButton
 );
 
+
+// ==================================================
+// iOS VIDEO FULLSCREEN EVENTS
+// ==================================================
 
 player.addEventListener(
     "webkitbeginfullscreen",
@@ -1253,170 +1124,6 @@ player.addEventListener(
 
     }
 );
-
-
-
-
-
-// ==================================================
-// FULLSCREEN DIAGNOSTIC
-// Floating red ? button - visible even on iPhone
-// ==================================================
-
-if (diagnosticButton) {
-
-    diagnosticButton.addEventListener(
-        "click",
-
-        function (event) {
-
-            event.preventDefault();
-            event.stopPropagation();
-
-
-            const diagnostic = {
-
-                userAgent:
-                    navigator.userAgent,
-
-                platform:
-                    navigator.platform,
-
-                maxTouchPoints:
-                    navigator.maxTouchPoints,
-
-                isIOS:
-                    typeof isIOS !== "undefined"
-                        ? isIOS
-                        : (
-                            /iPhone|iPad|iPod/i.test(
-                                navigator.userAgent
-                            )
-                            ||
-                            (
-                                navigator.platform === "MacIntel"
-                                &&
-                                navigator.maxTouchPoints > 1
-                            )
-                        ),
-
-                fullscreenEnabled:
-                    document.fullscreenEnabled,
-
-                webkitFullscreenEnabled:
-                    document.webkitFullscreenEnabled,
-
-                requestFullscreen:
-                    typeof playerContainer.requestFullscreen,
-
-                webkitRequestFullscreen:
-                    typeof playerContainer.webkitRequestFullscreen,
-
-                videoRequestFullscreen:
-                    typeof player.requestFullscreen,
-
-                webkitEnterFullscreen:
-                    typeof player.webkitEnterFullscreen,
-
-                webkitEnterFullScreen:
-                    typeof player.webkitEnterFullScreen,
-
-                webkitSupportsFullscreen:
-                    player.webkitSupportsFullscreen,
-
-                readyState:
-                    player.readyState,
-
-                networkState:
-                    player.networkState,
-
-                paused:
-                    player.paused,
-
-                currentTime:
-                    Number.isFinite(player.currentTime)
-                        ? player.currentTime
-                        : null,
-
-                duration:
-                    Number.isFinite(player.duration)
-                        ? player.duration
-                        : null,
-
-                fullscreenElement:
-                    Boolean(
-                        document.fullscreenElement
-                    ),
-
-                webkitFullscreenElement:
-                    Boolean(
-                        document.webkitFullscreenElement
-                    ),
-
-                currentSrc:
-                    player.currentSrc || player.src || ""
-
-            };
-
-
-            const output = [
-
-                "FULLSCREEN DIAGNOSTIC",
-                "",
-
-                `isIOS: ${diagnostic.isIOS}`,
-
-                `fullscreenEnabled: ${diagnostic.fullscreenEnabled}`,
-
-                `webkitFullscreenEnabled: ${diagnostic.webkitFullscreenEnabled}`,
-
-                `requestFullscreen: ${diagnostic.requestFullscreen}`,
-
-                `webkitRequestFullscreen: ${diagnostic.webkitRequestFullscreen}`,
-
-                `videoRequestFullscreen: ${diagnostic.videoRequestFullscreen}`,
-
-                `webkitEnterFullscreen: ${diagnostic.webkitEnterFullscreen}`,
-
-                `webkitEnterFullScreen: ${diagnostic.webkitEnterFullScreen}`,
-
-                `webkitSupportsFullscreen: ${diagnostic.webkitSupportsFullscreen}`,
-
-                `readyState: ${diagnostic.readyState}`,
-
-                `networkState: ${diagnostic.networkState}`,
-
-                `paused: ${diagnostic.paused}`,
-
-                `currentTime: ${diagnostic.currentTime}`,
-
-                `duration: ${diagnostic.duration}`,
-
-                `fullscreenElement: ${diagnostic.fullscreenElement}`,
-
-                `webkitFullscreenElement: ${diagnostic.webkitFullscreenElement}`,
-
-                "",
-                "User Agent:",
-                diagnostic.userAgent
-
-            ].join("\n");
-
-
-            alert(
-                output
-            );
-
-
-            console.log(
-                "FULLSCREEN DIAGNOSTIC:",
-                diagnostic
-            );
-
-        }
-    );
-
-}
 
 
 // ==================================================
