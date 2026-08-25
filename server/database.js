@@ -5,8 +5,8 @@ const fs = require("fs");
 
 // ==================================================
 // DATA ROOT
-// Local   = project folder
-// Railway = mounted volume
+// Railway = Volume
+// Local   = project root
 // ==================================================
 
 const dataRoot =
@@ -89,7 +89,53 @@ db.exec(`
 
 
 // ==================================================
-// ADMIN SESSIONS TABLE
+// SAFE MIGRATION FOR R2
+// Existing movies will NOT be deleted
+// ==================================================
+
+const columns =
+    db.prepare(
+        "PRAGMA table_info(movies)"
+    ).all();
+
+
+const columnNames =
+    columns.map(
+        column =>
+            column.name
+    );
+
+
+if (
+    !columnNames.includes(
+        "poster_key"
+    )
+) {
+
+    db.exec(`
+        ALTER TABLE movies
+        ADD COLUMN poster_key TEXT
+    `);
+
+}
+
+
+if (
+    !columnNames.includes(
+        "video_key"
+    )
+) {
+
+    db.exec(`
+        ALTER TABLE movies
+        ADD COLUMN video_key TEXT
+    `);
+
+}
+
+
+// ==================================================
+// ADMIN SESSIONS
 // ==================================================
 
 db.exec(`

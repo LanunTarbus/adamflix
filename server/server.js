@@ -3,22 +3,43 @@ const express = require("express");
 const path = require("path");
 const multer = require("multer");
 const fs = require("fs");
+const fsp = require("fs/promises");
+
+const {
+    S3Client,
+    PutObjectCommand,
+    GetObjectCommand,
+    DeleteObjectCommand
+} = require("@aws-sdk/client-s3");
+
+const {
+    getSignedUrl
+} = require("@aws-sdk/s3-request-presigner");
 
 
 // ==================================================
-// LOAD .ENV
+// LOAD LOCAL .ENV
+// Railway uses Variables
 // ==================================================
 
 function loadEnv() {
 
-    const envPath = path.join(
-        __dirname,
-        "..",
-        ".env"
-    );
+    const envPath =
+        path.join(
+            __dirname,
+            "..",
+            ".env"
+        );
 
-    if (!fs.existsSync(envPath)) {
+
+    if (
+        !fs.existsSync(
+            envPath
+        )
+    ) {
+
         return;
+
     }
 
 
@@ -26,20 +47,29 @@ function loadEnv() {
         fs.readFileSync(
             envPath,
             "utf8"
-        ).split(/\r?\n/);
+        )
+        .split(
+            /\r?\n/
+        );
 
 
-    for (const line of lines) {
+    for (
+        const line
+        of lines
+    ) {
 
         const trimmed =
             line.trim();
 
 
         if (
-            !trimmed ||
+            !trimmed
+            ||
             trimmed.startsWith("#")
         ) {
+
             continue;
+
         }
 
 
@@ -47,46 +77,60 @@ function loadEnv() {
             trimmed.indexOf("=");
 
 
-        if (index === -1) {
+        if (
+            index === -1
+        ) {
+
             continue;
+
         }
 
 
         const key =
             trimmed
-                .slice(0, index)
+                .slice(
+                    0,
+                    index
+                )
                 .trim();
 
 
         let value =
             trimmed
-                .slice(index + 1)
+                .slice(
+                    index + 1
+                )
                 .trim();
 
 
-        // Remove optional quotes
-
         if (
             (
-                value.startsWith('"') &&
+                value.startsWith('"')
+                &&
                 value.endsWith('"')
             )
             ||
             (
-                value.startsWith("'") &&
+                value.startsWith("'")
+                &&
                 value.endsWith("'")
             )
         ) {
 
             value =
-                value.slice(1, -1);
+                value.slice(
+                    1,
+                    -1
+                );
 
         }
 
 
         if (
-            key &&
-            process.env[key] === undefined
+            key
+            &&
+            process.env[key]
+                === undefined
         ) {
 
             process.env[key] =
@@ -103,49 +147,177 @@ loadEnv();
 
 
 // ==================================================
-// MODULES / DATABASE
+// DATABASE / EXPRESS
 // ==================================================
 
-const db = require("./database");
+const db =
+    require("./database");
 
-const app = express();
 
-// ==================================================
-// PORT
-// Local     = 3000
-// Hosting   = process.env.PORT
-// ==================================================
+const app =
+    express();
+
 
 const PORT =
-    process.env.PORT || 3000;
+    process.env.PORT
+    ||
+    3000;
 
 
 // ==================================================
-// ADMIN CONFIGURATION
+// ADMIN CONFIG
 // ==================================================
 
 const ADMIN_USERNAME =
     process.env.ADMIN_USERNAME;
 
+
 const ADMIN_PASSWORD_HASH =
     process.env.ADMIN_PASSWORD_HASH;
+
 
 const ADMIN_PASSWORD_SALT =
     process.env.ADMIN_PASSWORD_SALT;
 
 
-// 8 hours
-
 const SESSION_DURATION =
-    1000 * 60 * 60 * 8;
+    1000
+    *
+    60
+    *
+    60
+    *
+    8;
 
 
 // ==================================================
-// FOLDERS
+// CLOUDFLARE R2 CONFIG
 // ==================================================
 
+const R2_ACCOUNT_ID =
+    process.env.R2_ACCOUNT_ID;
+
+
+const R2_ACCESS_KEY_ID =
+    process.env.R2_ACCESS_KEY_ID;
+
+
+const R2_SECRET_ACCESS_KEY =
+    process.env.R2_SECRET_ACCESS_KEY;
+
+
+const R2_BUCKET =
+    process.env.R2_BUCKET;
+
+
+// Signed media URL valid 12 hours
+
+const R2_URL_EXPIRY =
+    60
+    *
+    60
+    *
+    12;
+
+
 // ==================================================
-// PERSISTENT STORAGE ROOT
+// R2 CLIENT
+// ==================================================
+
+const r2 =
+    new S3Client({
+
+        region:
+            "auto",
+
+        endpoint:
+            R2_ACCOUNT_ID
+                ? `https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com`
+                : undefined,
+
+        credentials:
+            (
+                R2_ACCESS_KEY_ID
+                &&
+                R2_SECRET_ACCESS_KEY
+            )
+                ? {
+
+                    accessKeyId:
+                        R2_ACCESS_KEY_ID,
+
+                    secretAccessKey:
+                        R2_SECRET_ACCESS_KEY
+
+                }
+                : undefined
+
+    });
+
+
+// ==================================================
+// CHECK R2 CONFIG
+// ==================================================
+
+function checkR2Config() {
+
+    const missing = [];
+
+
+    if (!R2_ACCOUNT_ID) {
+
+        missing.push(
+            "R2_ACCOUNT_ID"
+        );
+
+    }
+
+
+    if (!R2_ACCESS_KEY_ID) {
+
+        missing.push(
+            "R2_ACCESS_KEY_ID"
+        );
+
+    }
+
+
+    if (!R2_SECRET_ACCESS_KEY) {
+
+        missing.push(
+            "R2_SECRET_ACCESS_KEY"
+        );
+
+    }
+
+
+    if (!R2_BUCKET) {
+
+        missing.push(
+            "R2_BUCKET"
+        );
+
+    }
+
+
+    if (
+        missing.length > 0
+    ) {
+
+        throw new Error(
+            "Missing R2 variables: "
+            +
+            missing.join(", ")
+        );
+
+    }
+
+}
+
+
+// ==================================================
+// RAILWAY / LOCAL DATA ROOT
+// Used for SQLite + compatibility with old movies
 // ==================================================
 
 const dataRoot =
@@ -157,14 +329,14 @@ const dataRoot =
     );
 
 
-const imagesFolder =
+const legacyImagesFolder =
     path.join(
         dataRoot,
         "images"
     );
 
 
-const moviesFolder =
+const legacyMoviesFolder =
     path.join(
         dataRoot,
         "movies"
@@ -172,7 +344,7 @@ const moviesFolder =
 
 
 fs.mkdirSync(
-    imagesFolder,
+    legacyImagesFolder,
     {
         recursive: true
     }
@@ -180,7 +352,7 @@ fs.mkdirSync(
 
 
 fs.mkdirSync(
-    moviesFolder,
+    legacyMoviesFolder,
     {
         recursive: true
     }
@@ -188,7 +360,35 @@ fs.mkdirSync(
 
 
 // ==================================================
-// MIDDLEWARE
+// TEMP UPLOAD FOLDER
+// Movie only stays here during upload to R2
+// ==================================================
+
+const tempRoot =
+    process.env.TMPDIR
+    ||
+    process.env.TEMP
+    ||
+    "/tmp";
+
+
+const uploadTempFolder =
+    path.join(
+        tempRoot,
+        "adamflix-r2"
+    );
+
+
+fs.mkdirSync(
+    uploadTempFolder,
+    {
+        recursive: true
+    }
+);
+
+
+// ==================================================
+// EXPRESS MIDDLEWARE
 // ==================================================
 
 app.use(
@@ -203,9 +403,7 @@ app.use(
 );
 
 
-// ==================================================
-// STATIC FILES
-// ==================================================
+// Website files
 
 app.use(
     express.static(
@@ -216,15 +414,14 @@ app.use(
     )
 );
 
-// ==================================================
-// SERVE PERSISTENT UPLOADS
-// ==================================================
+
+// Compatibility with old Railway Volume movies
 
 app.use(
     "/images",
 
     express.static(
-        imagesFolder
+        legacyImagesFolder
     )
 );
 
@@ -233,21 +430,25 @@ app.use(
     "/movies",
 
     express.static(
-        moviesFolder
+        legacyMoviesFolder
     )
 );
 
 
 // ==================================================
-// PASSWORD VERIFICATION
+// PASSWORD VERIFY
 // ==================================================
 
-function verifyPassword(password) {
+function verifyPassword(
+    password
+) {
 
     if (
-        !ADMIN_PASSWORD_HASH ||
-        !ADMIN_PASSWORD_SALT ||
         !password
+        ||
+        !ADMIN_PASSWORD_HASH
+        ||
+        !ADMIN_PASSWORD_SALT
     ) {
 
         return false;
@@ -273,7 +474,8 @@ function verifyPassword(password) {
 
 
         if (
-            derivedKey.length !==
+            derivedKey.length
+            !==
             storedKey.length
         ) {
 
@@ -282,18 +484,22 @@ function verifyPassword(password) {
         }
 
 
-        return crypto.timingSafeEqual(
-            derivedKey,
-            storedKey
-        );
+        return crypto
+            .timingSafeEqual(
+                derivedKey,
+                storedKey
+            );
 
 
-    } catch (error) {
+    } catch (
+        error
+    ) {
 
         console.error(
-            "Password verification error:",
+            "Password verify error:",
             error
         );
+
 
         return false;
 
@@ -303,10 +509,12 @@ function verifyPassword(password) {
 
 
 // ==================================================
-// CREATE SESSION
+// ADMIN SESSION
 // ==================================================
 
-function createSession(username) {
+function createSession(
+    username
+) {
 
     const token =
         crypto
@@ -319,7 +527,8 @@ function createSession(username) {
 
 
     const expiresAt =
-        now +
+        now
+        +
         SESSION_DURATION;
 
 
@@ -331,6 +540,7 @@ function createSession(username) {
             created_at,
             expires_at
         )
+
         VALUES (?, ?, ?, ?)
     `).run(
         token,
@@ -345,14 +555,14 @@ function createSession(username) {
 }
 
 
-// ==================================================
-// GET SESSION TOKEN
-// ==================================================
-
-function getSessionToken(req) {
+function getSessionToken(
+    req
+) {
 
     const cookies =
-        req.headers.cookie || "";
+        req.headers.cookie
+        ||
+        "";
 
 
     const match =
@@ -361,19 +571,12 @@ function getSessionToken(req) {
         );
 
 
-    if (!match) {
-        return null;
-    }
-
-
-    return match[1];
+    return match
+        ? match[1]
+        : null;
 
 }
 
-
-// ==================================================
-// REQUIRE ADMIN
-// ==================================================
 
 function requireAdmin(
     req,
@@ -382,7 +585,9 @@ function requireAdmin(
 ) {
 
     const token =
-        getSessionToken(req);
+        getSessionToken(
+            req
+        );
 
 
     if (!token) {
@@ -406,7 +611,9 @@ function requireAdmin(
             SELECT *
             FROM admin_sessions
             WHERE token = ?
-        `).get(token);
+        `).get(
+            token
+        );
 
 
     if (!session) {
@@ -426,14 +633,17 @@ function requireAdmin(
 
 
     if (
-        Date.now() >
+        Date.now()
+        >
         session.expires_at
     ) {
 
         db.prepare(`
             DELETE FROM admin_sessions
             WHERE token = ?
-        `).run(token);
+        `).run(
+            token
+        );
 
 
         return res
@@ -454,10 +664,6 @@ function requireAdmin(
         session;
 
 
-    req.adminToken =
-        token;
-
-
     next();
 
 }
@@ -475,55 +681,18 @@ app.post(
         const {
             username,
             password
-        } = req.body;
+        } =
+            req.body;
 
 
         if (
-            !ADMIN_USERNAME ||
-            !ADMIN_PASSWORD_HASH ||
-            !ADMIN_PASSWORD_SALT
-        ) {
-
-            console.error(
-                "Admin authentication is not configured."
-            );
-
-
-            return res
-                .status(500)
-                .json({
-
-                    success: false,
-
-                    error:
-                        "Admin authentication is not configured."
-
-                });
-
-        }
-
-
-        if (
-            username !==
+            username
+            !==
             ADMIN_USERNAME
-        ) {
-
-            return res
-                .status(401)
-                .json({
-
-                    success: false,
-
-                    error:
-                        "Invalid username or password"
-
-                });
-
-        }
-
-
-        if (
-            !verifyPassword(password)
+            ||
+            !verifyPassword(
+                password
+            )
         ) {
 
             return res
@@ -546,16 +715,36 @@ app.post(
             );
 
 
+        const cookie = [
+
+            `admin_session=${token}`,
+
+            "HttpOnly",
+
+            "SameSite=Lax",
+
+            "Path=/",
+
+            "Max-Age=28800"
+
+        ];
+
+
+        if (
+            process.env
+                .RAILWAY_ENVIRONMENT
+        ) {
+
+            cookie.push(
+                "Secure"
+            );
+
+        }
+
+
         res.setHeader(
             "Set-Cookie",
-
-            [
-                `admin_session=${token}`,
-                "HttpOnly",
-                "SameSite=Lax",
-                "Path=/",
-                "Max-Age=28800"
-            ].join("; ")
+            cookie.join("; ")
         );
 
 
@@ -579,7 +768,9 @@ app.post(
     (req, res) => {
 
         const token =
-            getSessionToken(req);
+            getSessionToken(
+                req
+            );
 
 
         if (token) {
@@ -587,7 +778,9 @@ app.post(
             db.prepare(`
                 DELETE FROM admin_sessions
                 WHERE token = ?
-            `).run(token);
+            `).run(
+                token
+            );
 
         }
 
@@ -595,13 +788,7 @@ app.post(
         res.setHeader(
             "Set-Cookie",
 
-            [
-                "admin_session=",
-                "HttpOnly",
-                "SameSite=Lax",
-                "Path=/",
-                "Max-Age=0"
-            ].join("; ")
+            "admin_session=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0"
         );
 
 
@@ -616,84 +803,22 @@ app.post(
 
 
 // ==================================================
-// CHECK ADMIN SESSION
+// ADMIN ME
 // ==================================================
 
 app.get(
     "/api/admin/me",
 
+    requireAdmin,
+
     (req, res) => {
-
-        const token =
-            getSessionToken(req);
-
-
-        if (!token) {
-
-            return res
-                .status(401)
-                .json({
-
-                    authenticated:
-                        false
-
-                });
-
-        }
-
-
-        const session =
-            db.prepare(`
-                SELECT *
-                FROM admin_sessions
-                WHERE token = ?
-            `).get(token);
-
-
-        if (!session) {
-
-            return res
-                .status(401)
-                .json({
-
-                    authenticated:
-                        false
-
-                });
-
-        }
-
-
-        if (
-            Date.now() >
-            session.expires_at
-        ) {
-
-            db.prepare(`
-                DELETE FROM admin_sessions
-                WHERE token = ?
-            `).run(token);
-
-
-            return res
-                .status(401)
-                .json({
-
-                    authenticated:
-                        false
-
-                });
-
-        }
-
 
         res.json({
 
-            authenticated:
-                true,
+            authenticated: true,
 
             username:
-                session.username
+                req.admin.username
 
         });
 
@@ -702,38 +827,298 @@ app.get(
 
 
 // ==================================================
-// CLEAN EXPIRED SESSIONS
+// SAFE OBJECT NAME
 // ==================================================
 
-setInterval(
-    () => {
+function safeFilename(
+    originalName
+) {
 
-        try {
+    const ext =
+        path.extname(
+            originalName
+        )
+        .toLowerCase();
 
-            db.prepare(`
-                DELETE FROM admin_sessions
-                WHERE expires_at < ?
-            `).run(
-                Date.now()
-            );
 
-        } catch (error) {
+    const base =
+        path.basename(
+            originalName,
+            ext
+        )
+        .replace(
+            /[^a-zA-Z0-9_-]/g,
+            "-"
+        )
+        .replace(
+            /-+/g,
+            "-"
+        )
+        .slice(
+            0,
+            80
+        );
 
-            console.error(
-                "Session cleanup error:",
-                error
-            );
 
-        }
+    return (
 
-    },
+        Date.now()
 
-    1000 * 60 * 30
-);
+        +
+
+        "-"
+
+        +
+
+        crypto
+            .randomBytes(5)
+            .toString("hex")
+
+        +
+
+        "-"
+
+        +
+
+        base
+
+        +
+
+        ext
+
+    );
+
+}
 
 
 // ==================================================
-// MULTER STORAGE
+// GENERATE R2 KEY
+// ==================================================
+
+function createR2Key(
+    type,
+    originalName
+) {
+
+    const filename =
+        safeFilename(
+            originalName
+        );
+
+
+    if (
+        type === "poster"
+    ) {
+
+        return (
+            `posters/${filename}`
+        );
+
+    }
+
+
+    return (
+        `movies/${filename}`
+    );
+
+}
+
+
+// ==================================================
+// UPLOAD FILE TO R2
+// ==================================================
+
+async function uploadFileToR2(
+    localFile,
+    type
+) {
+
+    checkR2Config();
+
+
+    const key =
+        createR2Key(
+            type,
+            localFile.originalname
+        );
+
+
+    const stat =
+        await fsp.stat(
+            localFile.path
+        );
+
+
+    const stream =
+        fs.createReadStream(
+            localFile.path
+        );
+
+
+    await r2.send(
+        new PutObjectCommand({
+
+            Bucket:
+                R2_BUCKET,
+
+            Key:
+                key,
+
+            Body:
+                stream,
+
+            ContentLength:
+                stat.size,
+
+            ContentType:
+                localFile.mimetype
+                ||
+                "application/octet-stream",
+
+            CacheControl:
+                type === "poster"
+                    ? "public, max-age=86400"
+                    : "private, max-age=3600"
+
+        })
+    );
+
+
+    return key;
+
+}
+
+
+// ==================================================
+// DELETE FROM R2
+// ==================================================
+
+async function deleteFromR2(
+    key
+) {
+
+    if (!key) {
+        return;
+    }
+
+
+    checkR2Config();
+
+
+    await r2.send(
+        new DeleteObjectCommand({
+
+            Bucket:
+                R2_BUCKET,
+
+            Key:
+                key
+
+        })
+    );
+
+}
+
+
+// ==================================================
+// SIGN R2 OBJECT
+// ==================================================
+
+async function getR2SignedUrl(
+    key
+) {
+
+    if (!key) {
+        return null;
+    }
+
+
+    checkR2Config();
+
+
+    return (
+        await getSignedUrl(
+
+            r2,
+
+            new GetObjectCommand({
+
+                Bucket:
+                    R2_BUCKET,
+
+                Key:
+                    key
+
+            }),
+
+            {
+                expiresIn:
+                    R2_URL_EXPIRY
+            }
+
+        )
+    );
+
+}
+
+
+// ==================================================
+// PUBLIC MOVIE OBJECT
+// ==================================================
+
+async function publicMovie(
+    movie
+) {
+
+    let posterUrl =
+        movie.poster;
+
+
+    let videoUrl =
+        movie.video;
+
+
+    if (
+        movie.poster_key
+    ) {
+
+        posterUrl =
+            await getR2SignedUrl(
+                movie.poster_key
+            );
+
+    }
+
+
+    if (
+        movie.video_key
+    ) {
+
+        videoUrl =
+            await getR2SignedUrl(
+                movie.video_key
+            );
+
+    }
+
+
+    return {
+
+        ...movie,
+
+        poster:
+            posterUrl,
+
+        video:
+            videoUrl
+
+    };
+
+}
+
+
+// ==================================================
+// MULTER TEMP STORAGE
 // ==================================================
 
 const storage =
@@ -746,40 +1131,9 @@ const storage =
                 cb
             ) {
 
-                if (
-                    file.fieldname ===
-                    "poster"
-                ) {
-
-                    cb(
-                        null,
-                        imagesFolder
-                    );
-
-                    return;
-
-                }
-
-
-                if (
-                    file.fieldname ===
-                    "video"
-                ) {
-
-                    cb(
-                        null,
-                        moviesFolder
-                    );
-
-                    return;
-
-                }
-
-
                 cb(
-                    new Error(
-                        "Invalid upload field"
-                    )
+                    null,
+                    uploadTempFolder
                 );
 
             },
@@ -792,27 +1146,32 @@ const storage =
                 cb
             ) {
 
-                const safeName =
-                    file.originalname
-                        .replace(
-                            /[^a-zA-Z0-9._-]/g,
-                            "-"
-                        );
-
-
-                const uniqueName =
-                    Date.now() +
-                    "-" +
-                    crypto
-                        .randomBytes(4)
-                        .toString("hex") +
-                    "-" +
-                    safeName;
+                const ext =
+                    path.extname(
+                        file.originalname
+                    );
 
 
                 cb(
+
                     null,
-                    uniqueName
+
+                    Date.now()
+
+                    +
+
+                    "-"
+
+                    +
+
+                    crypto
+                        .randomBytes(5)
+                        .toString("hex")
+
+                    +
+
+                    ext
+
                 );
 
             }
@@ -820,17 +1179,104 @@ const storage =
     });
 
 
+// ==================================================
+// FILE VALIDATION
+// ==================================================
+
+function fileFilter(
+    req,
+    file,
+    cb
+) {
+
+    if (
+        file.fieldname ===
+        "poster"
+    ) {
+
+        const allowed = [
+
+            "image/jpeg",
+
+            "image/png",
+
+            "image/webp"
+
+        ];
+
+
+        if (
+            !allowed.includes(
+                file.mimetype
+            )
+        ) {
+
+            return cb(
+                new Error(
+                    "Poster must be JPG, PNG or WEBP"
+                )
+            );
+
+        }
+
+    }
+
+
+    if (
+        file.fieldname ===
+        "video"
+    ) {
+
+        const allowed = [
+
+            "video/mp4",
+
+            "video/webm"
+
+        ];
+
+
+        if (
+            !allowed.includes(
+                file.mimetype
+            )
+        ) {
+
+            return cb(
+                new Error(
+                    "Video must be MP4 or WEBM"
+                )
+            );
+
+        }
+
+    }
+
+
+    cb(
+        null,
+        true
+    );
+
+}
+
+
 const upload =
     multer({
 
         storage,
 
+        fileFilter,
+
         limits: {
 
             fileSize:
-                5 *
-                1024 *
-                1024 *
+                5
+                *
+                1024
+                *
+                1024
+                *
                 1024
 
         }
@@ -839,62 +1285,58 @@ const upload =
 
 
 // ==================================================
-// DELETE FILE HELPER
+// TEMP FILE CLEANUP
 // ==================================================
 
-function deleteLocalFile(
-    relativePath
+async function removeTempFile(
+    file
 ) {
 
-    if (!relativePath) {
-        return;
-    }
-
-
-    const projectRoot =
-        path.resolve(
-            __dirname,
-            ".."
-        );
-
-
-    const filePath =
-        path.resolve(
-            projectRoot,
-            relativePath
-        );
-
-
-    // Prevent deleting outside project
-
     if (
-        !filePath.startsWith(
-            projectRoot +
-            path.sep
-        )
+        !file?.path
     ) {
-
-        console.error(
-            "Blocked invalid file path:",
-            filePath
-        );
 
         return;
 
     }
 
 
-    if (
-        fs.existsSync(
-            filePath
-        )
-    ) {
+    try {
 
-        fs.unlinkSync(
-            filePath
+        await fsp.unlink(
+            file.path
         );
 
+    } catch {
+        // ignore
     }
+
+}
+
+
+async function removeAllTempFiles(
+    files
+) {
+
+    if (!files) {
+        return;
+    }
+
+
+    const allFiles = [
+
+        ...(files.poster || []),
+
+        ...(files.video || [])
+
+    ];
+
+
+    await Promise.all(
+        allFiles.map(
+            removeTempFile
+        )
+    );
 
 }
 
@@ -906,11 +1348,14 @@ function deleteLocalFile(
 app.get(
     "/api/movies",
 
-    (req, res) => {
+    async (
+        req,
+        res
+    ) => {
 
         try {
 
-            const movies =
+            const rows =
                 db.prepare(`
                     SELECT *
                     FROM movies
@@ -918,14 +1363,29 @@ app.get(
                 `).all();
 
 
+            const result =
+                await Promise.all(
+
+                    rows.map(
+                        publicMovie
+                    )
+
+                );
+
+
             res.json(
-                movies
+                result
             );
 
 
-        } catch (error) {
+        } catch (
+            error
+        ) {
 
-            console.error(error);
+            console.error(
+                "Load movies error:",
+                error
+            );
 
 
             res
@@ -933,7 +1393,7 @@ app.get(
                 .json({
 
                     error:
-                        "Failed to load movies."
+                        "Failed to load movies"
 
                 });
 
@@ -950,7 +1410,10 @@ app.get(
 app.get(
     "/api/movies/:id",
 
-    (req, res) => {
+    async (
+        req,
+        res
+    ) => {
 
         try {
 
@@ -979,13 +1442,20 @@ app.get(
 
 
             res.json(
-                movie
+                await publicMovie(
+                    movie
+                )
             );
 
 
-        } catch (error) {
+        } catch (
+            error
+        ) {
 
-            console.error(error);
+            console.error(
+                "Load movie error:",
+                error
+            );
 
 
             res
@@ -993,7 +1463,7 @@ app.get(
                 .json({
 
                     error:
-                        "Failed to load movie."
+                        "Failed to load movie"
 
                 });
 
@@ -1005,7 +1475,7 @@ app.get(
 
 // ==================================================
 // UPLOAD MOVIE
-// ADMIN ONLY
+// New poster + movie → Cloudflare R2
 // ==================================================
 
 app.post(
@@ -1015,22 +1485,66 @@ app.post(
 
     upload.fields([
         {
-            name: "poster",
-            maxCount: 1
+            name:
+                "poster",
+
+            maxCount:
+                1
         },
+
         {
-            name: "video",
-            maxCount: 1
+            name:
+                "video",
+
+            maxCount:
+                1
         }
     ]),
 
-    (req, res) => {
+    async (
+        req,
+        res
+    ) => {
 
-        let posterPath = null;
-        let videoPath = null;
+        let posterKey =
+            null;
+
+
+        let videoKey =
+            null;
 
 
         try {
+
+            const posterFile =
+                req.files
+                    ?.poster
+                    ?.[0];
+
+
+            const videoFile =
+                req.files
+                    ?.video
+                    ?.[0];
+
+
+            if (
+                !posterFile
+                ||
+                !videoFile
+            ) {
+
+                return res
+                    .status(400)
+                    .json({
+
+                        error:
+                            "Poster and video are required"
+
+                    });
+
+            }
+
 
             const {
                 title,
@@ -1039,12 +1553,16 @@ app.post(
                 rating,
                 duration,
                 description
-            } = req.body;
+            } =
+                req.body;
 
 
             if (
-                !title ||
-                !genre
+                !title
+                ||
+                !String(
+                    title
+                ).trim()
             ) {
 
                 return res
@@ -1052,46 +1570,33 @@ app.post(
                     .json({
 
                         error:
-                            "Title and genre are required."
+                            "Movie title is required"
 
                     });
 
             }
 
 
-            if (
-                !req.files ||
-                !req.files.poster ||
-                !req.files.video
-            ) {
+            // Upload poster
 
-                return res
-                    .status(400)
-                    .json({
-
-                        error:
-                            "Poster and video are required."
-
-                    });
-
-            }
+            posterKey =
+                await uploadFileToR2(
+                    posterFile,
+                    "poster"
+                );
 
 
-            posterPath =
-                "images/" +
-                req.files.poster[0]
-                    .filename;
+            // Upload video
 
-
-            videoPath =
-                "movies/" +
-                req.files.video[0]
-                    .filename;
+            videoKey =
+                await uploadFileToR2(
+                    videoFile,
+                    "video"
+                );
 
 
             const result =
                 db.prepare(`
-
                     INSERT INTO movies
                     (
                         title,
@@ -1100,19 +1605,25 @@ app.post(
                         rating,
                         duration,
                         description,
+
                         poster,
-                        video
+                        video,
+
+                        poster_key,
+                        video_key
                     )
 
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-
+                    VALUES (
+                        ?, ?, ?, ?, ?, ?,
+                        ?, ?, ?, ?
+                    )
                 `).run(
 
-                    title.trim(),
+                    String(title).trim(),
 
                     year,
 
-                    genre.trim(),
+                    genre,
 
                     rating,
 
@@ -1120,9 +1631,13 @@ app.post(
 
                     description,
 
-                    posterPath,
+                    null,
 
-                    videoPath
+                    null,
+
+                    posterKey,
+
+                    videoKey
 
                 );
 
@@ -1137,31 +1652,44 @@ app.post(
             });
 
 
-        } catch (error) {
+        } catch (
+            error
+        ) {
 
             console.error(
+                "Upload movie error:",
                 error
             );
 
 
-            // Remove uploaded files
-            // if DB insert fails
+            // Rollback R2 objects
+            // if something failed
 
             try {
 
-                deleteLocalFile(
-                    posterPath
-                );
+                if (posterKey) {
 
-                deleteLocalFile(
-                    videoPath
-                );
+                    await deleteFromR2(
+                        posterKey
+                    );
+
+                }
+
+
+                if (videoKey) {
+
+                    await deleteFromR2(
+                        videoKey
+                    );
+
+                }
 
             } catch (
                 cleanupError
             ) {
 
                 console.error(
+                    "R2 cleanup error:",
                     cleanupError
                 );
 
@@ -1173,9 +1701,18 @@ app.post(
                 .json({
 
                     error:
-                        "Failed to upload movie."
+                        error.message
+                        ||
+                        "Movie upload failed"
 
                 });
+
+
+        } finally {
+
+            await removeAllTempFiles(
+                req.files
+            );
 
         }
 
@@ -1185,9 +1722,7 @@ app.post(
 
 // ==================================================
 // EDIT MOVIE
-// ADMIN ONLY
-//
-// Metadata + optional poster/video replacement
+// Optional replace poster / video in R2
 // ==================================================
 
 app.put(
@@ -1197,21 +1732,32 @@ app.put(
 
     upload.fields([
         {
-            name: "poster",
-            maxCount: 1
+            name:
+                "poster",
+
+            maxCount:
+                1
         },
+
         {
-            name: "video",
-            maxCount: 1
+            name:
+                "video",
+
+            maxCount:
+                1
         }
     ]),
 
-    (req, res) => {
+    async (
+        req,
+        res
+    ) => {
 
-        let uploadedPosterPath =
+        let newPosterKey =
             null;
 
-        let uploadedVideoPath =
+
+        let newVideoKey =
             null;
 
 
@@ -1229,53 +1775,48 @@ app.put(
 
             if (!movie) {
 
-                // Delete files Multer may
-                // already have uploaded
-
-                if (
-                    req.files?.poster?.[0]
-                ) {
-
-                    uploadedPosterPath =
-                        "images/" +
-                        req.files.poster[0]
-                            .filename;
-
-
-                    deleteLocalFile(
-                        uploadedPosterPath
-                    );
-
-                }
-
-
-                if (
-                    req.files?.video?.[0]
-                ) {
-
-                    uploadedVideoPath =
-                        "movies/" +
-                        req.files.video[0]
-                            .filename;
-
-
-                    deleteLocalFile(
-                        uploadedVideoPath
-                    );
-
-                }
-
-
                 return res
                     .status(404)
                     .json({
-
-                        success: false,
 
                         error:
                             "Movie not found"
 
                     });
+
+            }
+
+
+            const posterFile =
+                req.files
+                    ?.poster
+                    ?.[0];
+
+
+            const videoFile =
+                req.files
+                    ?.video
+                    ?.[0];
+
+
+            if (posterFile) {
+
+                newPosterKey =
+                    await uploadFileToR2(
+                        posterFile,
+                        "poster"
+                    );
+
+            }
+
+
+            if (videoFile) {
+
+                newVideoKey =
+                    await uploadFileToR2(
+                        videoFile,
+                        "video"
+                    );
 
             }
 
@@ -1287,122 +1828,39 @@ app.put(
                 rating,
                 duration,
                 description
-            } = req.body;
+            } =
+                req.body;
 
 
-            const newTitle =
-                title !== undefined
-                    ? String(title).trim()
-                    : movie.title;
+            const finalPosterKey =
+                newPosterKey
+                ||
+                movie.poster_key;
 
 
-            const newYear =
-                year !== undefined
-                    ? year
-                    : movie.year;
+            const finalVideoKey =
+                newVideoKey
+                ||
+                movie.video_key;
 
 
-            const newGenre =
-                genre !== undefined
-                    ? String(genre).trim()
-                    : movie.genre;
+            /*
+             * Keep old local paths
+             * only when movie has not
+             * yet been migrated to R2.
+             */
+
+            const finalPoster =
+                finalPosterKey
+                    ? null
+                    : movie.poster;
 
 
-            const newRating =
-                rating !== undefined
-                    ? rating
-                    : movie.rating;
+            const finalVideo =
+                finalVideoKey
+                    ? null
+                    : movie.video;
 
-
-            const newDuration =
-                duration !== undefined
-                    ? duration
-                    : movie.duration;
-
-
-            const newDescription =
-                description !== undefined
-                    ? description
-                    : movie.description;
-
-
-            if (!newTitle) {
-
-                return res
-                    .status(400)
-                    .json({
-
-                        success: false,
-
-                        error:
-                            "Movie title is required."
-
-                    });
-
-            }
-
-
-            if (!newGenre) {
-
-                return res
-                    .status(400)
-                    .json({
-
-                        success: false,
-
-                        error:
-                            "Genre is required."
-
-                    });
-
-            }
-
-
-            let newPosterPath =
-                movie.poster;
-
-
-            let newVideoPath =
-                movie.video;
-
-
-            // New poster
-
-            if (
-                req.files?.poster?.[0]
-            ) {
-
-                uploadedPosterPath =
-                    "images/" +
-                    req.files.poster[0]
-                        .filename;
-
-
-                newPosterPath =
-                    uploadedPosterPath;
-
-            }
-
-
-            // New video
-
-            if (
-                req.files?.video?.[0]
-            ) {
-
-                uploadedVideoPath =
-                    "movies/" +
-                    req.files.video[0]
-                        .filename;
-
-
-                newVideoPath =
-                    uploadedVideoPath;
-
-            }
-
-
-            // Update database first
 
             db.prepare(`
                 UPDATE movies
@@ -1414,60 +1872,106 @@ app.put(
                     rating = ?,
                     duration = ?,
                     description = ?,
+
                     poster = ?,
-                    video = ?
+                    video = ?,
+
+                    poster_key = ?,
+                    video_key = ?
 
                 WHERE id = ?
             `).run(
 
-                newTitle,
+                title !== undefined
+                    ? title
+                    : movie.title,
 
-                newYear,
+                year !== undefined
+                    ? year
+                    : movie.year,
 
-                newGenre,
+                genre !== undefined
+                    ? genre
+                    : movie.genre,
 
-                newRating,
+                rating !== undefined
+                    ? rating
+                    : movie.rating,
 
-                newDuration,
+                duration !== undefined
+                    ? duration
+                    : movie.duration,
 
-                newDescription,
+                description !== undefined
+                    ? description
+                    : movie.description,
 
-                newPosterPath,
+                finalPoster,
 
-                newVideoPath,
+                finalVideo,
+
+                finalPosterKey,
+
+                finalVideoKey,
 
                 req.params.id
 
             );
 
 
-            // Only delete old files
-            // AFTER database update succeeds
+            /*
+             * Delete old R2 object only
+             * AFTER database succeeds.
+             */
 
             if (
-                uploadedPosterPath &&
-                movie.poster &&
-                movie.poster !==
-                    newPosterPath
+                newPosterKey
+                &&
+                movie.poster_key
             ) {
 
-                deleteLocalFile(
-                    movie.poster
-                );
+                try {
+
+                    await deleteFromR2(
+                        movie.poster_key
+                    );
+
+                } catch (
+                    error
+                ) {
+
+                    console.error(
+                        "Old poster cleanup failed:",
+                        error
+                    );
+
+                }
 
             }
 
 
             if (
-                uploadedVideoPath &&
-                movie.video &&
-                movie.video !==
-                    newVideoPath
+                newVideoKey
+                &&
+                movie.video_key
             ) {
 
-                deleteLocalFile(
-                    movie.video
-                );
+                try {
+
+                    await deleteFromR2(
+                        movie.video_key
+                    );
+
+                } catch (
+                    error
+                ) {
+
+                    console.error(
+                        "Old video cleanup failed:",
+                        error
+                    );
+
+                }
 
             }
 
@@ -1482,7 +1986,9 @@ app.put(
             });
 
 
-        } catch (error) {
+        } catch (
+            error
+        ) {
 
             console.error(
                 "Edit movie error:",
@@ -1490,29 +1996,31 @@ app.put(
             );
 
 
-            // DB update failed:
-            // remove newly uploaded files,
-            // preserve old files.
+            /*
+             * If update failed,
+             * remove newly uploaded R2
+             * objects.
+             */
 
             try {
 
                 if (
-                    uploadedPosterPath
+                    newPosterKey
                 ) {
 
-                    deleteLocalFile(
-                        uploadedPosterPath
+                    await deleteFromR2(
+                        newPosterKey
                     );
 
                 }
 
 
                 if (
-                    uploadedVideoPath
+                    newVideoKey
                 ) {
 
-                    deleteLocalFile(
-                        uploadedVideoPath
+                    await deleteFromR2(
+                        newVideoKey
                     );
 
                 }
@@ -1522,7 +2030,7 @@ app.put(
             ) {
 
                 console.error(
-                    "Edit cleanup error:",
+                    "R2 edit cleanup error:",
                     cleanupError
                 );
 
@@ -1533,12 +2041,19 @@ app.put(
                 .status(500)
                 .json({
 
-                    success: false,
-
                     error:
-                        "Failed to update movie."
+                        error.message
+                        ||
+                        "Movie update failed"
 
                 });
+
+
+        } finally {
+
+            await removeAllTempFiles(
+                req.files
+            );
 
         }
 
@@ -1548,7 +2063,6 @@ app.put(
 
 // ==================================================
 // DELETE MOVIE
-// ADMIN ONLY
 // ==================================================
 
 app.delete(
@@ -1556,7 +2070,10 @@ app.delete(
 
     requireAdmin,
 
-    (req, res) => {
+    async (
+        req,
+        res
+    ) => {
 
         try {
 
@@ -1584,7 +2101,9 @@ app.delete(
             }
 
 
-            // Delete DB record first
+            /*
+             * Delete DB record first.
+             */
 
             db.prepare(`
                 DELETE FROM movies
@@ -1594,27 +2113,84 @@ app.delete(
             );
 
 
-            // Then delete files
+            /*
+             * R2 cleanup.
+             */
 
-            try {
+            if (
+                movie.poster_key
+            ) {
 
-                deleteLocalFile(
+                try {
+
+                    await deleteFromR2(
+                        movie.poster_key
+                    );
+
+                } catch (
+                    error
+                ) {
+
+                    console.error(
+                        "Poster R2 delete failed:",
+                        error
+                    );
+
+                }
+
+            }
+
+
+            if (
+                movie.video_key
+            ) {
+
+                try {
+
+                    await deleteFromR2(
+                        movie.video_key
+                    );
+
+                } catch (
+                    error
+                ) {
+
+                    console.error(
+                        "Video R2 delete failed:",
+                        error
+                    );
+
+                }
+
+            }
+
+
+            /*
+             * Old local Railway files
+             * can also be cleaned.
+             */
+
+            if (
+                !movie.poster_key
+                &&
+                movie.poster
+            ) {
+
+                deleteLegacyFile(
                     movie.poster
                 );
 
-
-                deleteLocalFile(
-                    movie.video
-                );
+            }
 
 
-            } catch (
-                fileError
+            if (
+                !movie.video_key
+                &&
+                movie.video
             ) {
 
-                console.error(
-                    "Movie deleted from DB, but file cleanup failed:",
-                    fileError
+                deleteLegacyFile(
+                    movie.video
                 );
 
             }
@@ -1627,9 +2203,12 @@ app.delete(
             });
 
 
-        } catch (error) {
+        } catch (
+            error
+        ) {
 
             console.error(
+                "Delete movie error:",
                 error
             );
 
@@ -1639,7 +2218,7 @@ app.delete(
                 .json({
 
                     error:
-                        "Failed to delete movie."
+                        "Failed to delete movie"
 
                 });
 
@@ -1650,7 +2229,136 @@ app.delete(
 
 
 // ==================================================
-// MULTER ERROR HANDLER
+// DELETE LEGACY LOCAL FILE
+// ==================================================
+
+function deleteLegacyFile(
+    relativePath
+) {
+
+    if (!relativePath) {
+        return;
+    }
+
+
+    const normalized =
+        String(
+            relativePath
+        )
+        .replace(
+            /\\/g,
+            "/"
+        );
+
+
+    let filePath =
+        null;
+
+
+    if (
+        normalized.startsWith(
+            "images/"
+        )
+    ) {
+
+        filePath =
+            path.join(
+                legacyImagesFolder,
+                path.basename(
+                    normalized
+                )
+            );
+
+    }
+
+
+    if (
+        normalized.startsWith(
+            "movies/"
+        )
+    ) {
+
+        filePath =
+            path.join(
+                legacyMoviesFolder,
+                path.basename(
+                    normalized
+                )
+            );
+
+    }
+
+
+    if (
+        filePath
+        &&
+        fs.existsSync(
+            filePath
+        )
+    ) {
+
+        try {
+
+            fs.unlinkSync(
+                filePath
+            );
+
+        } catch (
+            error
+        ) {
+
+            console.error(
+                "Legacy file cleanup:",
+                error
+            );
+
+        }
+
+    }
+
+}
+
+
+// ==================================================
+// CLEAN EXPIRED ADMIN SESSIONS
+// ==================================================
+
+setInterval(
+    () => {
+
+        try {
+
+            db.prepare(`
+                DELETE FROM admin_sessions
+                WHERE expires_at < ?
+            `).run(
+                Date.now()
+            );
+
+
+        } catch (
+            error
+        ) {
+
+            console.error(
+                "Session cleanup:",
+                error
+            );
+
+        }
+
+    },
+
+    1000
+    *
+    60
+    *
+    30
+);
+
+
+// ==================================================
+// MULTER / GENERAL ERROR HANDLER
 // ==================================================
 
 app.use(
@@ -1661,16 +2369,17 @@ app.use(
         next
     ) => {
 
+        console.error(
+            "Server error:",
+            error
+        );
+
+
         if (
-            error instanceof
+            error
+            instanceof
             multer.MulterError
         ) {
-
-            console.error(
-                "Multer error:",
-                error
-            );
-
 
             return res
                 .status(400)
@@ -1686,29 +2395,18 @@ app.use(
         }
 
 
-        if (error) {
+        res
+            .status(500)
+            .json({
 
-            console.error(
-                "Server error:",
-                error
-            );
+                success: false,
 
+                error:
+                    error.message
+                    ||
+                    "Internal server error"
 
-            return res
-                .status(500)
-                .json({
-
-                    success: false,
-
-                    error:
-                        "Server error"
-
-                });
-
-        }
-
-
-        next();
+            });
 
     }
 );
@@ -1725,6 +2423,25 @@ app.listen(
         console.log(
             `AdamFlix running at http://localhost:${PORT}`
         );
+
+
+        if (
+            R2_ACCOUNT_ID
+            &&
+            R2_BUCKET
+        ) {
+
+            console.log(
+                `Cloudflare R2 enabled: ${R2_BUCKET}`
+            );
+
+        } else {
+
+            console.log(
+                "Cloudflare R2 is not configured"
+            );
+
+        }
 
     }
 );
