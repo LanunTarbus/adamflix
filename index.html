@@ -23,9 +23,9 @@
 <body>
 
 
-<!-- =========================
+<!-- ==================================================
      NAVBAR
-========================= -->
+================================================== -->
 
 <header
     id="mainNavbar"
@@ -39,16 +39,16 @@
 
     <nav class="desktop-nav">
 
-        <a href="#home">
+        <a href="/">
             Home
         </a>
 
-        <a href="#latest">
+        <a href="#recentlyAdded">
             Movies
         </a>
 
-        <a href="#trending">
-            Trending
+        <a href="#myListSection">
+            My List
         </a>
 
     </nav>
@@ -56,25 +56,26 @@
 
     <div class="nav-actions">
 
+        <div class="nav-search">
+
+            <input
+                type="search"
+                id="navSearch"
+                placeholder="Search movies..."
+                autocomplete="off"
+            >
+
+        </div>
+
+
         <button
             id="mobileSearchButton"
             class="mobile-icon-button"
             type="button"
             aria-label="Search"
         >
-            🔎
+            🔍
         </button>
-
-
-        <div class="nav-search">
-
-            <input
-                type="text"
-                id="navSearch"
-                placeholder="Search..."
-            >
-
-        </div>
 
 
         <button
@@ -91,29 +92,21 @@
 </header>
 
 
-<!-- =========================
+<!-- ==================================================
      MOBILE MENU
-========================= -->
+================================================== -->
 
 <div
     id="mobileMenu"
     class="mobile-menu"
 >
 
-    <a href="#home">
+    <a href="/">
         Home
     </a>
 
-    <a href="#latest">
-        Latest Movies
-    </a>
-
-    <a href="#trending">
-        Trending
-    </a>
-
-    <a href="#continueSection">
-        Continue Watching
+    <a href="#recentlyAdded">
+        Movies
     </a>
 
     <a href="#myListSection">
@@ -123,111 +116,114 @@
 </div>
 
 
-<!-- =========================
-     MOBILE SEARCH
-========================= -->
-
 <div
     id="mobileSearchPanel"
     class="mobile-search-panel"
 >
 
     <input
-        type="text"
+        type="search"
         id="mobileSearch"
         placeholder="Search movies..."
+        autocomplete="off"
     >
 
 </div>
 
 
-<!-- =========================
-     HERO
-========================= -->
-
-<section
-    id="home"
-    class="home-hero"
->
-
-    <div
-        id="heroBackdrop"
-        class="hero-backdrop"
-    ></div>
-
-
-    <div class="hero-shade"></div>
-
-
-    <div class="hero-content">
-
-        <span class="hero-badge">
-            FEATURED
-        </span>
-
-
-        <h1 id="heroTitle">
-            Loading...
-        </h1>
-
-
-        <div
-            id="heroMeta"
-            class="hero-meta"
-        ></div>
-
-
-        <p id="heroDescription">
-            Loading movie...
-        </p>
-
-
-        <div class="hero-actions">
-
-            <button
-                id="heroWatchButton"
-                class="hero-primary-button"
-                type="button"
-            >
-                ▶ Watch Now
-            </button>
-
-
-            <button
-                id="heroInfoButton"
-                class="hero-secondary-button"
-                type="button"
-            >
-                More Info
-            </button>
-
-        </div>
-
-    </div>
-
-</section>
-
-
 <main>
 
 
-    <!-- =========================
+    <!-- ==================================================
+         HERO
+    ================================================== -->
+
+    <section class="home-hero">
+
+        <div
+            id="heroBackdrop"
+            class="hero-backdrop"
+        ></div>
+
+
+        <div class="hero-shade"></div>
+
+
+        <div class="hero-content">
+
+            <span class="hero-badge">
+                FEATURED ON ADAMFLIX
+            </span>
+
+
+            <h1 id="heroTitle">
+                Loading...
+            </h1>
+
+
+            <div
+                id="heroMeta"
+                class="hero-meta"
+            ></div>
+
+
+            <p id="heroDescription">
+                Loading featured movie...
+            </p>
+
+
+            <div class="hero-actions">
+
+                <button
+                    id="heroWatchButton"
+                    class="hero-primary-button"
+                    type="button"
+                >
+                    ▶ Watch Now
+                </button>
+
+
+                <button
+                    id="heroInfoButton"
+                    class="hero-secondary-button"
+                    type="button"
+                >
+                    ⓘ More Info
+                </button>
+
+
+                <button
+                    id="surpriseButton"
+                    class="hero-secondary-button"
+                    type="button"
+                >
+                    🎲 Surprise Me
+                </button>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- ==================================================
          SEARCH
-    ========================= -->
+    ================================================== -->
 
     <section class="home-search-section">
 
         <div class="home-search-box">
 
             <span>
-                🔎
+                🔍
             </span>
 
-
             <input
-                type="text"
+                type="search"
                 id="searchInput"
-                placeholder="Search movies by title or genre..."
+                placeholder="Search title, genre or year..."
+                autocomplete="off"
             >
 
         </div>
@@ -235,29 +231,19 @@
     </section>
 
 
-    <!-- =========================
-         GENRE FILTER
-    ========================= -->
+    <!-- ==================================================
+         GENRES
+    ================================================== -->
 
     <section
         id="genreSection"
         class="genre-section"
-    >
-
-        <button
-            class="genre-button active"
-            data-genre="All"
-            type="button"
-        >
-            All
-        </button>
-
-    </section>
+    ></section>
 
 
-    <!-- =========================
+    <!-- ==================================================
          SEARCH RESULTS
-    ========================= -->
+    ================================================== -->
 
     <section
         id="searchSection"
@@ -266,9 +252,17 @@
 
         <div class="section-heading">
 
-            <h2>
-                Search Results
-            </h2>
+            <div>
+
+                <span class="section-kicker">
+                    BROWSE
+                </span>
+
+                <h2>
+                    Search Results
+                </h2>
+
+            </div>
 
 
             <button
@@ -294,10 +288,6 @@
             style="display:none;"
         >
 
-            <div class="empty-icon">
-                🎬
-            </div>
-
             <h3>
                 No movies found
             </h3>
@@ -311,20 +301,29 @@
     </section>
 
 
-    <!-- =========================
+    <!-- ==================================================
          CONTINUE WATCHING
-    ========================= -->
+    ================================================== -->
 
     <section
         id="continueSection"
         class="movie-section"
+        style="display:none;"
     >
 
         <div class="section-heading">
 
-            <h2>
-                Continue Watching
-            </h2>
+            <div>
+
+                <span class="section-kicker">
+                    PICK UP WHERE YOU LEFT OFF
+                </span>
+
+                <h2>
+                    Continue Watching
+                </h2>
+
+            </div>
 
         </div>
 
@@ -337,20 +336,62 @@
     </section>
 
 
-    <!-- =========================
-         LATEST
-    ========================= -->
+    <!-- ==================================================
+         TOP 10
+    ================================================== -->
 
     <section
-        id="latest"
+        id="top10Section"
+        class="movie-section top10-section"
+    >
+
+        <div class="section-heading">
+
+            <div>
+
+                <span class="section-kicker">
+                    MOST POPULAR
+                </span>
+
+                <h2>
+                    Top 10 on AdamFlix
+                </h2>
+
+            </div>
+
+        </div>
+
+
+        <div
+            id="top10Movies"
+            class="movie-row top10-row"
+        ></div>
+
+    </section>
+
+
+    <!-- ==================================================
+         RECENTLY ADDED
+    ================================================== -->
+
+    <section
+        id="recentlyAdded"
         class="movie-section"
     >
 
         <div class="section-heading">
 
-            <h2>
-                Latest Movies
-            </h2>
+            <div>
+
+                <span class="section-kicker">
+                    FRESH ON ADAMFLIX
+                </span>
+
+                <h2>
+                    Recently Added
+                </h2>
+
+            </div>
 
         </div>
 
@@ -363,20 +404,27 @@
     </section>
 
 
-    <!-- =========================
+    <!-- ==================================================
          TRENDING
-    ========================= -->
+    ================================================== -->
 
     <section
-        id="trending"
         class="movie-section"
     >
 
         <div class="section-heading">
 
-            <h2>
-                Trending
-            </h2>
+            <div>
+
+                <span class="section-kicker">
+                    HIGHLY RATED
+                </span>
+
+                <h2>
+                    Trending Now
+                </h2>
+
+            </div>
 
         </div>
 
@@ -389,20 +437,36 @@
     </section>
 
 
-    <!-- =========================
+    <!-- ==================================================
+         DYNAMIC GENRE ROWS
+    ================================================== -->
+
+    <div id="genreRows"></div>
+
+
+    <!-- ==================================================
          MY LIST
-    ========================= -->
+    ================================================== -->
 
     <section
         id="myListSection"
         class="movie-section"
+        style="display:none;"
     >
 
         <div class="section-heading">
 
-            <h2>
-                My List
-            </h2>
+            <div>
+
+                <span class="section-kicker">
+                    SAVED FOR LATER
+                </span>
+
+                <h2>
+                    My List
+                </h2>
+
+            </div>
 
         </div>
 
@@ -420,12 +484,12 @@
 
 <footer class="home-footer">
 
-    <div class="logo">
+    <div class="footer-logo">
         ADAMFLIX
     </div>
 
     <p>
-        Stream anytime.
+        Stream your collection, your way.
     </p>
 
 </footer>

@@ -20,6 +20,12 @@ const trendingContainer =
     );
 
 
+const top10Container =
+    document.getElementById(
+        "top10Movies"
+    );
+
+
 const continueContainer =
     document.getElementById(
         "continueMovies"
@@ -29,6 +35,12 @@ const continueContainer =
 const myListContainer =
     document.getElementById(
         "myListMovies"
+    );
+
+
+const genreRows =
+    document.getElementById(
+        "genreRows"
     );
 
 
@@ -116,88 +128,6 @@ function movieHasGenre(
 
 
 // ==================================================
-// SKELETONS
-// ==================================================
-
-function createSkeletonCard() {
-
-    const card =
-        document.createElement(
-            "div"
-        );
-
-
-    card.className =
-        "movie-card skeleton-card";
-
-
-    card.innerHTML = `
-
-        <div
-            class="poster-wrapper skeleton-box"
-        ></div>
-
-        <div class="movie-card-info">
-
-            <div
-                class="skeleton-line skeleton-title"
-            ></div>
-
-            <div
-                class="skeleton-line skeleton-small"
-            ></div>
-
-        </div>
-
-    `;
-
-
-    return card;
-
-}
-
-
-function showSkeletons() {
-
-    const containers = [
-
-        latestContainer,
-        trendingContainer
-
-    ];
-
-
-    containers.forEach(
-        container => {
-
-            if (!container) {
-                return;
-            }
-
-
-            container.innerHTML =
-                "";
-
-
-            for (
-                let i = 0;
-                i < 7;
-                i++
-            ) {
-
-                container.appendChild(
-                    createSkeletonCard()
-                );
-
-            }
-
-        }
-    );
-
-}
-
-
-// ==================================================
 // LOAD MOVIES
 // ==================================================
 
@@ -231,18 +161,25 @@ async function loadMovies() {
 
         renderGenres();
 
+        renderContinueWatching();
+
+        renderTop10();
+
         renderLatest();
 
         renderTrending();
 
-        renderContinueWatching();
+        renderGenreRows();
 
         renderMyList();
 
 
     } catch (error) {
 
-        console.error(error);
+        console.error(
+            "Homepage load error:",
+            error
+        );
 
 
         latestContainer.innerHTML = `
@@ -276,16 +213,20 @@ function setupHero() {
         movies.length === 0
     ) {
 
-        document.getElementById(
-            "heroTitle"
-        ).textContent =
-            "No movies yet";
+        document
+            .getElementById(
+                "heroTitle"
+            )
+            .textContent =
+                "No movies yet";
 
 
-        document.getElementById(
-            "heroDescription"
-        ).textContent =
-            "Upload a movie from the admin panel.";
+        document
+            .getElementById(
+                "heroDescription"
+            )
+            .textContent =
+                "Upload a movie from the admin panel.";
 
 
         return;
@@ -297,73 +238,125 @@ function setupHero() {
         movies[0];
 
 
-    document.getElementById(
-        "heroTitle"
-    ).textContent =
-        movie.title;
+    document
+        .getElementById(
+            "heroTitle"
+        )
+        .textContent =
+            movie.title;
 
 
-    document.getElementById(
-        "heroDescription"
-    ).textContent =
-        movie.description || "";
+    document
+        .getElementById(
+            "heroDescription"
+        )
+        .textContent =
+            movie.description || "";
 
 
-    document.getElementById(
-        "heroMeta"
-    ).innerHTML = `
+    document
+        .getElementById(
+            "heroMeta"
+        )
+        .innerHTML = `
 
-        <span>
-            ⭐ ${movie.rating}
-        </span>
+            <span>
+                ⭐ ${movie.rating}
+            </span>
 
-        <span>
-            ${movie.year}
-        </span>
+            <span>
+                ${movie.year}
+            </span>
 
-        <span>
-            ${escapeHtml(movie.genre)}
-        </span>
+            <span>
+                ${escapeHtml(movie.genre)}
+            </span>
 
-        <span>
-            ${escapeHtml(movie.duration)}
-        </span>
+            <span>
+                ${escapeHtml(movie.duration)}
+            </span>
 
-    `;
-
-
-    document.getElementById(
-        "heroBackdrop"
-    ).style.backgroundImage =
-        `url("${movie.poster}")`;
+        `;
 
 
-    document.getElementById(
-        "heroWatchButton"
-    ).onclick =
-        function () {
-
-            window.location.href =
-                `/watch.html?id=${movie.id}`;
-
-        };
+    document
+        .getElementById(
+            "heroBackdrop"
+        )
+        .style
+        .backgroundImage =
+            `url("${movie.poster}")`;
 
 
-    document.getElementById(
-        "heroInfoButton"
-    ).onclick =
-        function () {
+    document
+        .getElementById(
+            "heroWatchButton"
+        )
+        .onclick =
+            function () {
 
-            window.location.href =
-                `/movie.html?id=${movie.id}`;
+                window.location.href =
+                    `/watch.html?id=${movie.id}`;
 
-        };
+            };
+
+
+    document
+        .getElementById(
+            "heroInfoButton"
+        )
+        .onclick =
+            function () {
+
+                window.location.href =
+                    `/movie.html?id=${movie.id}`;
+
+            };
 
 }
 
 
 // ==================================================
-// GENRES
+// SURPRISE ME
+// ==================================================
+
+document
+    .getElementById(
+        "surpriseButton"
+    )
+    .addEventListener(
+        "click",
+
+        function () {
+
+            if (
+                movies.length === 0
+            ) {
+
+                return;
+
+            }
+
+
+            const randomMovie =
+                movies[
+                    Math.floor(
+                        Math.random()
+                        *
+                        movies.length
+                    )
+                ];
+
+
+            window.location.href =
+                `/movie.html?id=${randomMovie.id}`;
+
+        }
+    );
+
+
+// ==================================================
+// GENRE BUTTONS
 // ==================================================
 
 function renderGenres() {
@@ -375,110 +368,131 @@ function renderGenres() {
 
 
     const genres =
-        [
-            ...new Set(
-
-                movies
-                    .flatMap(
-                        movie =>
-                            parseGenres(
-                                movie.genre
-                            )
-                    )
-
-            )
-        ]
-        .sort();
+        getAllGenres();
 
 
-    genreSection.innerHTML = `
+    genreSection.innerHTML =
+        "";
 
-        <button
-            class="genre-button active"
-            data-genre="All"
-            type="button"
-        >
-            All
-        </button>
 
-    `;
+    genreSection.appendChild(
+        createGenreButton(
+            "All",
+            true
+        )
+    );
 
 
     genres.forEach(
         genre => {
 
-            const button =
-                document.createElement(
-                    "button"
-                );
-
-
-            button.className =
-                "genre-button";
-
-
-            button.type =
-                "button";
-
-
-            button.dataset.genre =
-                genre;
-
-
-            button.textContent =
-                genre;
-
-
             genreSection.appendChild(
-                button
+                createGenreButton(
+                    genre,
+                    false
+                )
             );
 
         }
     );
 
-
-    genreSection
-        .querySelectorAll(
-            ".genre-button"
-        )
-        .forEach(
-            button => {
-
-                button.addEventListener(
-                    "click",
-
-                    function () {
-
-                        genreSection
-                            .querySelectorAll(
-                                ".genre-button"
-                            )
-                            .forEach(
-                                btn =>
-                                    btn.classList.remove(
-                                        "active"
-                                    )
-                            );
+}
 
 
-                        this.classList.add(
+function createGenreButton(
+    genre,
+    active
+) {
+
+    const button =
+        document.createElement(
+            "button"
+        );
+
+
+    button.className =
+        `genre-button${active ? " active" : ""}`;
+
+
+    button.type =
+        "button";
+
+
+    button.dataset.genre =
+        genre;
+
+
+    button.textContent =
+        genre;
+
+
+    button.addEventListener(
+        "click",
+
+        function () {
+
+            document
+                .querySelectorAll(
+                    ".genre-button"
+                )
+                .forEach(
+                    item =>
+                        item.classList.remove(
                             "active"
-                        );
-
-
-                        selectedGenre =
-                            this.dataset.genre;
-
-
-                        performSearch(
-                            searchInput.value
-                        );
-
-                    }
+                        )
                 );
 
+
+            button.classList.add(
+                "active"
+            );
+
+
+            selectedGenre =
+                genre;
+
+
+            performSearch(
+                searchInput.value
+            );
+
+
+            if (
+                genre !== "All"
+            ) {
+
+                searchSection
+                    .scrollIntoView({
+                        behavior:
+                            "smooth",
+
+                        block:
+                            "start"
+                    });
+
             }
-        );
+
+        }
+    );
+
+
+    return button;
+
+}
+
+
+function getAllGenres() {
+
+    return [
+        ...new Set(
+            movies.flatMap(
+                movie =>
+                    parseGenres(
+                        movie.genre
+                    )
+            )
+        )
+    ].sort();
 
 }
 
@@ -518,13 +532,46 @@ function createMovieCard(
 
             <div class="poster-overlay">
 
-                <button
-                    type="button"
-                    class="card-play-button"
-                    aria-label="Watch ${escapeHtml(movie.title)}"
-                >
-                    ▶
-                </button>
+                <div class="card-hover-actions">
+
+                    <button
+                        type="button"
+                        class="card-play-button"
+                        title="Play"
+                    >
+                        ▶
+                    </button>
+
+
+                    <button
+                        type="button"
+                        class="card-list-button"
+                        title="My List"
+                    >
+                        ${
+                            getMyList()
+                                .includes(
+                                    Number(movie.id)
+                                )
+                                ? "✓"
+                                : "+"
+                        }
+                    </button>
+
+                </div>
+
+
+                <div class="hover-meta">
+
+                    <strong>
+                        ⭐ ${movie.rating}
+                    </strong>
+
+                    <span>
+                        ${movie.year}
+                    </span>
+
+                </div>
 
             </div>
 
@@ -574,10 +621,6 @@ function createMovieCard(
                 </span>
 
                 <span>
-                    ${escapeHtml(movie.genre)}
-                </span>
-
-                <span>
                     ⭐ ${movie.rating}
                 </span>
 
@@ -600,25 +643,59 @@ function createMovieCard(
     );
 
 
-    const playButton =
-        card.querySelector(
+    card
+        .querySelector(
             ".card-play-button"
+        )
+        .addEventListener(
+            "click",
+
+            function (
+                event
+            ) {
+
+                event.stopPropagation();
+
+
+                window.location.href =
+                    `/watch.html?id=${movie.id}`;
+
+            }
         );
 
 
-    playButton.addEventListener(
-        "click",
+    card
+        .querySelector(
+            ".card-list-button"
+        )
+        .addEventListener(
+            "click",
 
-        function (event) {
+            function (
+                event
+            ) {
 
-            event.stopPropagation();
+                event.stopPropagation();
 
 
-            window.location.href =
-                `/watch.html?id=${movie.id}`;
+                toggleMyList(
+                    movie.id
+                );
 
-        }
-    );
+
+                renderMyList();
+
+
+                renderLatest();
+
+                renderTrending();
+
+                renderTop10();
+
+                renderGenreRows();
+
+            }
+        );
 
 
     return card;
@@ -627,7 +704,88 @@ function createMovieCard(
 
 
 // ==================================================
-// LATEST
+// TOP 10
+// ==================================================
+
+function renderTop10() {
+
+    top10Container.innerHTML =
+        "";
+
+
+    const top =
+        [...movies]
+            .sort(
+                (a, b) =>
+
+                    Number(
+                        b.rating || 0
+                    )
+                    -
+                    Number(
+                        a.rating || 0
+                    )
+            )
+            .slice(
+                0,
+                10
+            );
+
+
+    top.forEach(
+        (
+            movie,
+            index
+        ) => {
+
+            const item =
+                document.createElement(
+                    "div"
+                );
+
+
+            item.className =
+                "top10-item";
+
+
+            const rank =
+                document.createElement(
+                    "div"
+                );
+
+
+            rank.className =
+                "top10-rank";
+
+
+            rank.textContent =
+                index + 1;
+
+
+            item.appendChild(
+                rank
+            );
+
+
+            item.appendChild(
+                createMovieCard(
+                    movie
+                )
+            );
+
+
+            top10Container.appendChild(
+                item
+            );
+
+        }
+    );
+
+}
+
+
+// ==================================================
+// RECENTLY ADDED
 // ==================================================
 
 function renderLatest() {
@@ -692,6 +850,111 @@ function renderTrending() {
                 createMovieCard(
                     movie
                 )
+            );
+
+        }
+    );
+
+}
+
+
+// ==================================================
+// DYNAMIC GENRE ROWS
+// ==================================================
+
+function renderGenreRows() {
+
+    genreRows.innerHTML =
+        "";
+
+
+    const genres =
+        getAllGenres();
+
+
+    genres.forEach(
+        genre => {
+
+            const genreMovies =
+                movies.filter(
+                    movie =>
+                        movieHasGenre(
+                            movie,
+                            genre
+                        )
+                );
+
+
+            if (
+                genreMovies.length === 0
+            ) {
+
+                return;
+
+            }
+
+
+            const section =
+                document.createElement(
+                    "section"
+                );
+
+
+            section.className =
+                "movie-section";
+
+
+            section.innerHTML = `
+
+                <div class="section-heading">
+
+                    <div>
+
+                        <span class="section-kicker">
+                            BROWSE BY GENRE
+                        </span>
+
+                        <h2>
+                            ${escapeHtml(genre)}
+                        </h2>
+
+                    </div>
+
+                </div>
+
+                <div
+                    class="movie-row"
+                ></div>
+
+            `;
+
+
+            const row =
+                section.querySelector(
+                    ".movie-row"
+                );
+
+
+            genreMovies
+                .slice(
+                    0,
+                    15
+                )
+                .forEach(
+                    movie => {
+
+                        row.appendChild(
+                            createMovieCard(
+                                movie
+                            )
+                        );
+
+                    }
+                );
+
+
+            genreRows.appendChild(
+                section
             );
 
         }
@@ -768,13 +1031,17 @@ function renderContinueWatching() {
             .filter(Boolean);
 
 
+    const section =
+        document.getElementById(
+            "continueSection"
+        );
+
+
     if (
         watched.length === 0
     ) {
 
-        document.getElementById(
-            "continueSection"
-        ).style.display =
+        section.style.display =
             "none";
 
 
@@ -783,9 +1050,7 @@ function renderContinueWatching() {
     }
 
 
-    document.getElementById(
-        "continueSection"
-    ).style.display =
+    section.style.display =
         "block";
 
 
@@ -833,6 +1098,52 @@ function getMyList() {
 }
 
 
+function toggleMyList(
+    movieId
+) {
+
+    let list =
+        getMyList();
+
+
+    const id =
+        Number(
+            movieId
+        );
+
+
+    if (
+        list.includes(
+            id
+        )
+    ) {
+
+        list =
+            list.filter(
+                item =>
+                    Number(item) !==
+                    id
+            );
+
+    } else {
+
+        list.push(
+            id
+        );
+
+    }
+
+
+    localStorage.setItem(
+        "adamflix-my-list",
+        JSON.stringify(
+            list
+        )
+    );
+
+}
+
+
 function renderMyList() {
 
     myListContainer.innerHTML =
@@ -853,13 +1164,17 @@ function renderMyList() {
         );
 
 
+    const section =
+        document.getElementById(
+            "myListSection"
+        );
+
+
     if (
         myMovies.length === 0
     ) {
 
-        document.getElementById(
-            "myListSection"
-        ).style.display =
+        section.style.display =
             "none";
 
 
@@ -868,9 +1183,7 @@ function renderMyList() {
     }
 
 
-    document.getElementById(
-        "myListSection"
-    ).style.display =
+    section.style.display =
         "block";
 
 
@@ -939,6 +1252,12 @@ function performSearch(
                         .toLowerCase();
 
 
+                const year =
+                    String(
+                        movie.year || ""
+                    );
+
+
                 const matchesText =
                     text === ""
                     ||
@@ -947,6 +1266,10 @@ function performSearch(
                     )
                     ||
                     genre.includes(
+                        text
+                    )
+                    ||
+                    year.includes(
                         text
                     );
 
@@ -1025,7 +1348,7 @@ function renderSearchResults(
 
 
 // ==================================================
-// SEARCH INPUT SYNC
+// SEARCH SYNC
 // ==================================================
 
 function syncSearch(
@@ -1051,39 +1374,24 @@ function syncSearch(
 }
 
 
-searchInput.addEventListener(
-    "input",
+[
+    searchInput,
+    navSearch,
+    mobileSearch
+]
+.forEach(
+    input => {
 
-    function () {
+        input.addEventListener(
+            "input",
 
-        syncSearch(
-            this.value
-        );
+            function () {
 
-    }
-);
+                syncSearch(
+                    this.value
+                );
 
-
-navSearch.addEventListener(
-    "input",
-
-    function () {
-
-        syncSearch(
-            this.value
-        );
-
-    }
-);
-
-
-mobileSearch.addEventListener(
-    "input",
-
-    function () {
-
-        syncSearch(
-            this.value
+            }
         );
 
     }
@@ -1243,18 +1551,17 @@ window.addEventListener(
 
     function () {
 
-        const navbar =
-            document.getElementById(
+        document
+            .getElementById(
                 "mainNavbar"
+            )
+            .classList
+            .toggle(
+                "scrolled",
+
+                window.scrollY >
+                    20
             );
-
-
-        navbar.classList.toggle(
-            "scrolled",
-
-            window.scrollY >
-                20
-        );
 
     }
 );
@@ -1281,6 +1588,80 @@ window.addEventListener(
 
     }
 );
+
+
+// ==================================================
+// SKELETONS
+// ==================================================
+
+function createSkeletonCard() {
+
+    const card =
+        document.createElement(
+            "div"
+        );
+
+
+    card.className =
+        "movie-card skeleton-card";
+
+
+    card.innerHTML = `
+
+        <div
+            class="poster-wrapper skeleton-box"
+        ></div>
+
+        <div class="movie-card-info">
+
+            <div
+                class="skeleton-line skeleton-title"
+            ></div>
+
+            <div
+                class="skeleton-line skeleton-small"
+            ></div>
+
+        </div>
+
+    `;
+
+
+    return card;
+
+}
+
+
+function showSkeletons() {
+
+    [
+        latestContainer,
+        trendingContainer,
+        top10Container
+    ]
+    .forEach(
+        container => {
+
+            container.innerHTML =
+                "";
+
+
+            for (
+                let i = 0;
+                i < 7;
+                i++
+            ) {
+
+                container.appendChild(
+                    createSkeletonCard()
+                );
+
+            }
+
+        }
+    );
+
+}
 
 
 // ==================================================
