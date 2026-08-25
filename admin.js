@@ -1,19 +1,25 @@
-console.log("ADMIN.JS LOADED");
+console.log(
+    "ADMIN.JS LOADED"
+);
 
 
 const loginPage =
-    document.getElementById("loginPage");
+    document.getElementById(
+        "loginPage"
+    );
 
 
 const adminPage =
-    document.getElementById("adminPage");
+    document.getElementById(
+        "adminPage"
+    );
 
 
 let allMovies = [];
 
 
 // ==================================================
-// CHECK LOGIN
+// LOGIN CHECK
 // ==================================================
 
 async function checkLogin() {
@@ -21,7 +27,9 @@ async function checkLogin() {
     try {
 
         const response =
-            await fetch("/api/admin/me");
+            await fetch(
+                "/api/admin/me"
+            );
 
 
         if (!response.ok) {
@@ -37,7 +45,9 @@ async function checkLogin() {
             await response.json();
 
 
-        if (data.authenticated) {
+        if (
+            data.authenticated
+        ) {
 
             showAdmin();
 
@@ -50,7 +60,10 @@ async function checkLogin() {
 
     } catch (error) {
 
-        console.error(error);
+        console.error(
+            error
+        );
+
 
         showLogin();
 
@@ -99,33 +112,40 @@ function showAdmin() {
 // ==================================================
 
 document
-    .getElementById("loginForm")
+    .getElementById(
+        "loginForm"
+    )
     .addEventListener(
         "submit",
 
-        async function (event) {
+        async event => {
 
             event.preventDefault();
 
 
             const username =
                 document
-                    .getElementById("username")
+                    .getElementById(
+                        "username"
+                    )
                     .value;
 
 
             const password =
                 document
-                    .getElementById("password")
+                    .getElementById(
+                        "password"
+                    )
                     .value;
 
 
-            const error =
-                document
-                    .getElementById("loginError");
+            const errorElement =
+                document.getElementById(
+                    "loginError"
+                );
 
 
-            error.textContent =
+            errorElement.textContent =
                 "Logging in...";
 
 
@@ -134,9 +154,10 @@ document
                 const response =
                     await fetch(
                         "/api/admin/login",
-                        {
 
-                            method: "POST",
+                        {
+                            method:
+                                "POST",
 
                             headers: {
 
@@ -163,16 +184,18 @@ document
 
                 if (!response.ok) {
 
-                    error.textContent =
-                        data.error ||
+                    errorElement.textContent =
+                        data.error
+                        ||
                         "Login failed";
+
 
                     return;
 
                 }
 
 
-                error.textContent =
+                errorElement.textContent =
                     "";
 
 
@@ -181,10 +204,12 @@ document
 
             } catch (error) {
 
-                console.error(error);
+                console.error(
+                    error
+                );
 
 
-                error.textContent =
+                errorElement.textContent =
                     "Server connection failed";
 
             }
@@ -198,16 +223,19 @@ document
 // ==================================================
 
 document
-    .getElementById("logoutButton")
+    .getElementById(
+        "logoutButton"
+    )
     .addEventListener(
         "click",
 
-        async function () {
+        async () => {
 
             await fetch(
                 "/api/admin/logout",
                 {
-                    method: "POST"
+                    method:
+                        "POST"
                 }
             );
 
@@ -247,7 +275,6 @@ async function loadMovies() {
 
         updateStats();
 
-
         renderMovies(
             allMovies
         );
@@ -255,7 +282,9 @@ async function loadMovies() {
 
     } catch (error) {
 
-        console.error(error);
+        console.error(
+            error
+        );
 
     }
 
@@ -268,69 +297,46 @@ async function loadMovies() {
 
 function updateStats() {
 
-    const total =
-        allMovies.length;
-
-
     const genres =
         new Set(
 
-            allMovies.map(
-                movie =>
-                    movie.genre
-            )
+            allMovies
+                .map(
+                    movie =>
+                        movie.genre
+                )
+                .filter(Boolean)
 
         );
 
 
-    const latest =
-        allMovies.length > 0
-
-            ? allMovies[0].title
-
-            : "-";
-
-
-    const totalElement =
-        document.getElementById(
+    document
+        .getElementById(
             "totalMovies"
-        );
+        )
+        .textContent =
+            allMovies.length;
 
 
-    const genreElement =
-        document.getElementById(
+    document
+        .getElementById(
             "totalGenres"
-        );
-
-
-    const latestElement =
-        document.getElementById(
-            "latestMovie"
-        );
-
-
-    if (totalElement) {
-
-        totalElement.textContent =
-            total;
-
-    }
-
-
-    if (genreElement) {
-
-        genreElement.textContent =
+        )
+        .textContent =
             genres.size;
 
-    }
 
+    document
+        .getElementById(
+            "latestMovie"
+        )
+        .textContent =
 
-    if (latestElement) {
+            allMovies.length
 
-        latestElement.textContent =
-            latest;
+                ? allMovies[0].title
 
-    }
+                : "-";
 
 }
 
@@ -339,33 +345,26 @@ function updateStats() {
 // RENDER MOVIES
 // ==================================================
 
-function renderMovies(movies) {
+function renderMovies(
+    movies
+) {
 
-    const movieList =
+    const container =
         document.getElementById(
             "movieList"
         );
 
 
-    if (!movieList) {
-        return;
-    }
-
-
-    movieList.innerHTML =
+    container.innerHTML =
         "";
 
 
-    if (
-        movies.length === 0
-    ) {
+    if (!movies.length) {
 
-        movieList.innerHTML = `
+        container.innerHTML = `
 
             <p class="empty-message">
-
                 No movies found.
-
             </p>
 
         `;
@@ -400,50 +399,29 @@ function renderMovies(movies) {
                 <div class="admin-movie-info">
 
                     <h3>
-
                         ${escapeHtml(movie.title)}
-
                     </h3>
 
 
                     <p>
-
                         ${movie.year}
-
                         •
-
                         ${escapeHtml(movie.genre)}
-
                         •
-
                         ⭐ ${movie.rating}
-
                         •
-
                         ${escapeHtml(movie.duration)}
-
                     </p>
 
 
-                    <small>
-
-                        Video:
-                        ${escapeHtml(movie.video)}
-
-                    </small>
-
-
                     <div class="admin-actions">
-
 
                         <a
                             href="/watch.html?id=${movie.id}"
                             target="_blank"
                             class="preview-button"
                         >
-
                             ▶ Preview
-
                         </a>
 
 
@@ -451,9 +429,7 @@ function renderMovies(movies) {
                             class="edit-button"
                             onclick="editMovie(${movie.id})"
                         >
-
-                            ✏️ Edit
-
+                            ✏ Edit
                         </button>
 
 
@@ -461,11 +437,8 @@ function renderMovies(movies) {
                             class="delete-button"
                             onclick="deleteMovie(${movie.id})"
                         >
-
                             Delete
-
                         </button>
-
 
                     </div>
 
@@ -474,7 +447,7 @@ function renderMovies(movies) {
             `;
 
 
-            movieList.appendChild(
+            container.appendChild(
                 item
             );
 
@@ -488,15 +461,11 @@ function renderMovies(movies) {
 // SEARCH
 // ==================================================
 
-const movieSearch =
-    document.getElementById(
+document
+    .getElementById(
         "movieSearch"
-    );
-
-
-if (movieSearch) {
-
-    movieSearch.addEventListener(
+    )
+    .addEventListener(
         "input",
 
         function () {
@@ -512,25 +481,25 @@ if (movieSearch) {
                     movie =>
 
                         String(
-                            movie.title
+                            movie.title || ""
                         )
-                            .toLowerCase()
-                            .includes(query)
+                        .toLowerCase()
+                        .includes(query)
 
                         ||
 
                         String(
-                            movie.genre
+                            movie.genre || ""
                         )
-                            .toLowerCase()
-                            .includes(query)
+                        .toLowerCase()
+                        .includes(query)
 
                         ||
 
                         String(
-                            movie.year
+                            movie.year || ""
                         )
-                            .includes(query)
+                        .includes(query)
 
                 );
 
@@ -542,32 +511,518 @@ if (movieSearch) {
         }
     );
 
+
+// ==================================================
+// GENERATE UPLOAD ID
+// ==================================================
+
+function createUploadId() {
+
+    if (
+        window.crypto &&
+        crypto.randomUUID
+    ) {
+
+        return crypto.randomUUID();
+
+    }
+
+
+    return (
+
+        Date.now()
+
+        +
+
+        "-"
+
+        +
+
+        Math.random()
+            .toString(36)
+            .slice(2)
+
+    );
+
 }
 
 
 // ==================================================
-// OPEN EDIT MODAL
+// TWO STAGE UPLOAD
 // ==================================================
 
-function editMovie(id) {
+const movieForm =
+    document.getElementById(
+        "movieForm"
+    );
+
+
+movieForm.addEventListener(
+    "submit",
+
+    function (
+        event
+    ) {
+
+        event.preventDefault();
+
+
+        const uploadId =
+            createUploadId();
+
+
+        const message =
+            document.getElementById(
+                "uploadMessage"
+            );
+
+
+        const panel =
+            document.getElementById(
+                "uploadProgressPanel"
+            );
+
+
+        const serverBar =
+            document.getElementById(
+                "serverProgressBar"
+            );
+
+
+        const serverText =
+            document.getElementById(
+                "serverProgressText"
+            );
+
+
+        const r2Bar =
+            document.getElementById(
+                "r2ProgressBar"
+            );
+
+
+        const r2Text =
+            document.getElementById(
+                "r2ProgressText"
+            );
+
+
+        const stageMessage =
+            document.getElementById(
+                "uploadStageMessage"
+            );
+
+
+        const button =
+            document.getElementById(
+                "uploadButton"
+            );
+
+
+        panel.style.display =
+            "block";
+
+
+        serverBar.style.width =
+            "0%";
+
+
+        serverText.textContent =
+            "0%";
+
+
+        r2Bar.style.width =
+            "0%";
+
+
+        r2Text.textContent =
+            "0%";
+
+
+        message.textContent =
+            "";
+
+
+        stageMessage.textContent =
+            "Preparing upload...";
+
+
+        button.disabled =
+            true;
+
+
+        button.textContent =
+            "Uploading...";
+
+
+        const formData =
+            new FormData(
+                movieForm
+            );
+
+
+        formData.append(
+            "uploadId",
+            uploadId
+        );
+
+
+        // ==================================================
+        // SSE - R2 PROGRESS
+        // ==================================================
+
+        const events =
+            new EventSource(
+                `/api/upload-progress/${encodeURIComponent(uploadId)}`
+            );
+
+
+        events.onmessage =
+            function (
+                event
+            ) {
+
+                try {
+
+                    const data =
+                        JSON.parse(
+                            event.data
+                        );
+
+
+                    if (
+                        data.stage ===
+                        "r2"
+                    ) {
+
+                        const percent =
+                            Number(
+                                data.r2Percent || 0
+                            );
+
+
+                        r2Bar.style.width =
+                            `${percent}%`;
+
+
+                        r2Text.textContent =
+                            `${percent}%`;
+
+
+                        stageMessage.textContent =
+                            data.message
+                            ||
+                            "Uploading to Cloudflare R2...";
+
+                    }
+
+
+                    if (
+                        data.stage ===
+                        "done"
+                    ) {
+
+                        r2Bar.style.width =
+                            "100%";
+
+
+                        r2Text.textContent =
+                            "100%";
+
+
+                        stageMessage.textContent =
+                            "✓ Upload complete";
+
+
+                        events.close();
+
+                    }
+
+
+                    if (
+                        data.stage ===
+                        "error"
+                    ) {
+
+                        stageMessage.textContent =
+                            data.message
+                            ||
+                            "Upload failed";
+
+
+                        events.close();
+
+                    }
+
+
+                } catch (error) {
+
+                    console.error(
+                        error
+                    );
+
+                }
+
+            };
+
+
+        // ==================================================
+        // XHR - BROWSER → RAILWAY
+        // ==================================================
+
+        const xhr =
+            new XMLHttpRequest();
+
+
+        xhr.open(
+            "POST",
+            "/api/movies/upload",
+            true
+        );
+
+
+        xhr.upload.addEventListener(
+            "progress",
+
+            function (
+                event
+            ) {
+
+                if (
+                    !event.lengthComputable
+                ) {
+                    return;
+                }
+
+
+                const percent =
+                    Math.min(
+                        100,
+
+                        Math.round(
+                            (
+                                event.loaded
+                                /
+                                event.total
+                            )
+                            *
+                            100
+                        )
+                    );
+
+
+                serverBar.style.width =
+                    `${percent}%`;
+
+
+                serverText.textContent =
+                    `${percent}%`;
+
+
+                stageMessage.textContent =
+                    `Uploading to server... ${percent}%`;
+
+
+                if (
+                    percent >= 100
+                ) {
+
+                    stageMessage.textContent =
+                        "Server received file. Sending to Cloudflare R2...";
+
+                }
+
+            }
+        );
+
+
+        xhr.addEventListener(
+            "load",
+
+            async function () {
+
+                let data = {};
+
+
+                try {
+
+                    data =
+                        JSON.parse(
+                            xhr.responseText
+                        );
+
+                } catch {
+                    // ignore
+                }
+
+
+                if (
+                    xhr.status === 401
+                ) {
+
+                    events.close();
+
+                    button.disabled =
+                        false;
+
+
+                    button.textContent =
+                        "Upload Movie";
+
+
+                    showLogin();
+
+
+                    return;
+
+                }
+
+
+                if (
+                    xhr.status < 200 ||
+                    xhr.status >= 300
+                ) {
+
+                    events.close();
+
+
+                    stageMessage.textContent =
+                        data.error
+                        ||
+                        "Upload failed";
+
+
+                    message.textContent =
+                        "Upload failed";
+
+
+                    button.disabled =
+                        false;
+
+
+                    button.textContent =
+                        "Upload Movie";
+
+
+                    return;
+
+                }
+
+
+                serverBar.style.width =
+                    "100%";
+
+
+                serverText.textContent =
+                    "100%";
+
+
+                r2Bar.style.width =
+                    "100%";
+
+
+                r2Text.textContent =
+                    "100%";
+
+
+                stageMessage.textContent =
+                    "✓ Movie uploaded successfully";
+
+
+                message.textContent =
+                    "✓ Movie uploaded successfully";
+
+
+                movieForm.reset();
+
+
+                await loadMovies();
+
+
+                button.disabled =
+                    false;
+
+
+                button.textContent =
+                    "Upload Movie";
+
+
+                setTimeout(
+                    function () {
+
+                        panel.style.display =
+                            "none";
+
+
+                        serverBar.style.width =
+                            "0%";
+
+
+                        r2Bar.style.width =
+                            "0%";
+
+                    },
+
+                    2500
+                );
+
+            }
+        );
+
+
+        xhr.addEventListener(
+            "error",
+
+            function () {
+
+                events.close();
+
+
+                message.textContent =
+                    "Network error";
+
+
+                stageMessage.textContent =
+                    "Upload failed";
+
+
+                button.disabled =
+                    false;
+
+
+                button.textContent =
+                    "Upload Movie";
+
+            }
+        );
+
+
+        xhr.send(
+            formData
+        );
+
+    }
+);
+
+
+// ==================================================
+// EDIT
+// ==================================================
+
+function editMovie(
+    id
+) {
 
     const movie =
         allMovies.find(
             movie =>
-
                 Number(movie.id) ===
                 Number(id)
         );
 
 
     if (!movie) {
-
-        alert(
-            "Movie not found"
-        );
-
         return;
-
     }
 
 
@@ -635,8 +1090,6 @@ function editMovie(id) {
             movie.poster || "";
 
 
-    // Clear old selected files
-
     document
         .getElementById(
             "editPoster"
@@ -675,45 +1128,6 @@ function editMovie(id) {
 }
 
 
-// ==================================================
-// POSTER PREVIEW WHEN SELECTING NEW POSTER
-// ==================================================
-
-document
-    .getElementById("editPoster")
-    .addEventListener(
-        "change",
-
-        function () {
-
-            const file =
-                this.files[0];
-
-
-            if (!file) {
-                return;
-            }
-
-
-            const preview =
-                document.getElementById(
-                    "editPosterPreview"
-                );
-
-
-            preview.src =
-                URL.createObjectURL(
-                    file
-                );
-
-        }
-    );
-
-
-// ==================================================
-// CLOSE EDIT MODAL
-// ==================================================
-
 function closeEditModal() {
 
     document
@@ -730,8 +1144,6 @@ function closeEditModal() {
 }
 
 
-// Close button
-
 document
     .getElementById(
         "closeEditModal"
@@ -741,8 +1153,6 @@ document
         closeEditModal
     );
 
-
-// Cancel button
 
 document
     .getElementById(
@@ -754,48 +1164,35 @@ document
     );
 
 
-// Click background
-
 document
     .getElementById(
-        "editModal"
+        "editPoster"
     )
     .addEventListener(
-        "click",
+        "change",
 
-        function (event) {
+        function () {
 
-            if (
-                event.target ===
-                this
-            ) {
+            const file =
+                this.files[0];
 
-                closeEditModal();
 
+            if (!file) {
+                return;
             }
+
+
+            document
+                .getElementById(
+                    "editPosterPreview"
+                )
+                .src =
+                    URL.createObjectURL(
+                        file
+                    );
 
         }
     );
-
-
-// Escape key
-
-document.addEventListener(
-    "keydown",
-
-    function (event) {
-
-        if (
-            event.key ===
-            "Escape"
-        ) {
-
-            closeEditModal();
-
-        }
-
-    }
-);
 
 
 // ==================================================
@@ -809,7 +1206,7 @@ document
     .addEventListener(
         "submit",
 
-        async function (event) {
+        async event => {
 
             event.preventDefault();
 
@@ -822,64 +1219,78 @@ document
                     .value;
 
 
-            const title =
+            const message =
+                document.getElementById(
+                    "editMessage"
+                );
+
+
+            const formData =
+                new FormData();
+
+
+            formData.append(
+                "title",
                 document
                     .getElementById(
                         "editTitle"
                     )
                     .value
-                    .trim();
+                    .trim()
+            );
 
 
-            const year =
-                Number(
-
-                    document
-                        .getElementById(
-                            "editYear"
-                        )
-                        .value
-
-                );
+            formData.append(
+                "year",
+                document
+                    .getElementById(
+                        "editYear"
+                    )
+                    .value
+            );
 
 
-            const genre =
+            formData.append(
+                "genre",
                 document
                     .getElementById(
                         "editGenre"
                     )
                     .value
-                    .trim();
+                    .trim()
+            );
 
 
-            const rating =
-                Number(
-
-                    document
-                        .getElementById(
-                            "editRating"
-                        )
-                        .value
-
-                );
+            formData.append(
+                "rating",
+                document
+                    .getElementById(
+                        "editRating"
+                    )
+                    .value
+            );
 
 
-            const duration =
+            formData.append(
+                "duration",
                 document
                     .getElementById(
                         "editDuration"
                     )
                     .value
-                    .trim();
+                    .trim()
+            );
 
 
-            const description =
+            formData.append(
+                "description",
                 document
                     .getElementById(
                         "editDescription"
                     )
                     .value
-                    .trim();
+                    .trim()
+            );
 
 
             const poster =
@@ -896,99 +1307,6 @@ document
                         "editVideo"
                     )
                     .files[0];
-
-
-            const message =
-                document
-                    .getElementById(
-                        "editMessage"
-                    );
-
-
-            // Validation
-
-            if (!title) {
-
-                message.textContent =
-                    "Movie title is required.";
-
-                return;
-
-            }
-
-
-            if (
-                !Number.isInteger(year)
-                ||
-                year < 1888
-                ||
-                year > 2100
-            ) {
-
-                message.textContent =
-                    "Enter a valid year.";
-
-                return;
-
-            }
-
-
-            if (
-                !Number.isFinite(rating)
-                ||
-                rating < 0
-                ||
-                rating > 10
-            ) {
-
-                message.textContent =
-                    "Rating must be between 0 and 10.";
-
-                return;
-
-            }
-
-
-            // Build FormData
-
-            const formData =
-                new FormData();
-
-
-            formData.append(
-                "title",
-                title
-            );
-
-
-            formData.append(
-                "year",
-                year
-            );
-
-
-            formData.append(
-                "genre",
-                genre
-            );
-
-
-            formData.append(
-                "rating",
-                rating
-            );
-
-
-            formData.append(
-                "duration",
-                duration
-            );
-
-
-            formData.append(
-                "description",
-                description
-            );
 
 
             if (poster) {
@@ -1020,14 +1338,13 @@ document
                 const response =
                     await fetch(
                         `/api/movies/${id}`,
-                        {
 
+                        {
                             method:
                                 "PUT",
 
                             body:
                                 formData
-
                         }
                     );
 
@@ -1053,8 +1370,10 @@ document
                 if (!response.ok) {
 
                     message.textContent =
-                        data.error ||
+                        data.error
+                        ||
                         "Update failed";
+
 
                     return;
 
@@ -1062,24 +1381,23 @@ document
 
 
                 message.textContent =
-                    "✓ Movie updated successfully";
+                    "✓ Movie updated";
 
 
                 await loadMovies();
 
 
                 setTimeout(
-
                     closeEditModal,
-
-                    600
-
+                    500
                 );
 
 
             } catch (error) {
 
-                console.error(error);
+                console.error(
+                    error
+                );
 
 
                 message.textContent =
@@ -1092,19 +1410,18 @@ document
 
 
 // ==================================================
-// DELETE MOVIE
+// DELETE
 // ==================================================
 
-async function deleteMovie(id) {
+async function deleteMovie(
+    id
+) {
 
     const movie =
         allMovies.find(
-
             movie =>
-
                 Number(movie.id) ===
                 Number(id)
-
         );
 
 
@@ -1113,16 +1430,14 @@ async function deleteMovie(id) {
     }
 
 
-    const confirmed =
-        confirm(
-
+    if (
+        !confirm(
             `Delete "${movie.title}"?`
+        )
+    ) {
 
-        );
-
-
-    if (!confirmed) {
         return;
+
     }
 
 
@@ -1131,11 +1446,10 @@ async function deleteMovie(id) {
         const response =
             await fetch(
                 `/api/movies/${id}`,
-                {
 
+                {
                     method:
                         "DELETE"
-
                 }
             );
 
@@ -1159,9 +1473,11 @@ async function deleteMovie(id) {
         if (!response.ok) {
 
             alert(
-                data.error ||
+                data.error
+                ||
                 "Delete failed"
             );
+
 
             return;
 
@@ -1173,7 +1489,9 @@ async function deleteMovie(id) {
 
     } catch (error) {
 
-        console.error(error);
+        console.error(
+            error
+        );
 
 
         alert(
@@ -1186,118 +1504,16 @@ async function deleteMovie(id) {
 
 
 // ==================================================
-// UPLOAD MOVIE
+// ESCAPE
 // ==================================================
 
-const movieForm =
-    document.getElementById(
-        "movieForm"
-    );
+function escapeHtml(
+    value
+) {
 
-
-if (movieForm) {
-
-    movieForm.addEventListener(
-        "submit",
-
-        async function (event) {
-
-            event.preventDefault();
-
-
-            const message =
-                document.getElementById(
-                    "uploadMessage"
-                );
-
-
-            const formData =
-                new FormData(
-                    movieForm
-                );
-
-
-            message.textContent =
-                "Uploading...";
-
-
-            try {
-
-                const response =
-                    await fetch(
-                        "/api/movies/upload",
-                        {
-
-                            method:
-                                "POST",
-
-                            body:
-                                formData
-
-                        }
-                    );
-
-
-                const data =
-                    await response.json();
-
-
-                if (
-                    response.status ===
-                    401
-                ) {
-
-                    showLogin();
-
-                    return;
-
-                }
-
-
-                if (!response.ok) {
-
-                    message.textContent =
-                        data.error ||
-                        "Upload failed";
-
-                    return;
-
-                }
-
-
-                message.textContent =
-                    "✓ Movie uploaded successfully";
-
-
-                movieForm.reset();
-
-
-                await loadMovies();
-
-
-            } catch (error) {
-
-                console.error(error);
-
-
-                message.textContent =
-                    "Upload failed";
-
-            }
-
-        }
-    );
-
-}
-
-
-// ==================================================
-// ESCAPE HTML
-// ==================================================
-
-function escapeHtml(value) {
-
-    return String(value)
+    return String(
+        value ?? ""
+    )
 
         .replace(
             /&/g,

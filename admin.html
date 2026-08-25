@@ -10,7 +10,9 @@
         content="width=device-width, initial-scale=1.0"
     >
 
-    <title>Admin - AdamFlix</title>
+    <title>
+        Admin - AdamFlix
+    </title>
 
     <link
         rel="stylesheet"
@@ -23,9 +25,9 @@
 <body>
 
 
-<!-- =========================
+<!-- ==================================================
      LOGIN
-========================= -->
+================================================== -->
 
 <div
     id="loginPage"
@@ -80,9 +82,9 @@
 </div>
 
 
-<!-- =========================
+<!-- ==================================================
      ADMIN
-========================= -->
+================================================== -->
 
 <div
     id="adminPage"
@@ -121,24 +123,20 @@
 
     <div class="admin-header">
 
-        <div>
+        <h1>
+            Dashboard
+        </h1>
 
-            <h1>
-                Dashboard
-            </h1>
-
-            <p>
-                Manage your movies
-            </p>
-
-        </div>
+        <p>
+            Manage your movies
+        </p>
 
     </div>
 
 
-    <!-- =========================
+    <!-- ==================================================
          STATS
-    ========================= -->
+    ================================================== -->
 
     <section class="stats-grid">
 
@@ -185,9 +183,9 @@
     </section>
 
 
-    <!-- =========================
+    <!-- ==================================================
          UPLOAD
-    ========================= -->
+    ================================================== -->
 
     <section class="admin-panel">
 
@@ -203,7 +201,6 @@
 
 
             <div class="form-grid">
-
 
                 <input
                     type="text"
@@ -233,9 +230,9 @@
                     type="number"
                     name="rating"
                     placeholder="Rating"
-                    step="0.1"
                     min="0"
                     max="10"
+                    step="0.1"
                     required
                 >
 
@@ -258,6 +255,7 @@
 
 
             <div class="file-grid">
+
 
                 <label class="file-label">
 
@@ -290,11 +288,13 @@
 
                 </label>
 
+
             </div>
 
 
             <button
                 type="submit"
+                id="uploadButton"
                 class="upload-button"
             >
                 Upload Movie
@@ -307,16 +307,103 @@
             ></p>
 
 
+            <!-- ==================================================
+                 TWO STAGE PROGRESS
+            ================================================== -->
+
+            <div
+                id="uploadProgressPanel"
+                class="two-stage-upload"
+                style="display:none;"
+            >
+
+
+                <!-- STAGE 1 -->
+
+                <div class="upload-stage">
+
+                    <div class="upload-stage-header">
+
+                        <span>
+                            1. Upload to server
+                        </span>
+
+                        <strong
+                            id="serverProgressText"
+                        >
+                            0%
+                        </strong>
+
+                    </div>
+
+
+                    <div class="upload-progress-track">
+
+                        <div
+                            id="serverProgressBar"
+                            class="upload-progress-bar"
+                            style="width:0%;"
+                        ></div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- STAGE 2 -->
+
+                <div class="upload-stage">
+
+                    <div class="upload-stage-header">
+
+                        <span>
+                            2. Upload to Cloudflare R2
+                        </span>
+
+                        <strong
+                            id="r2ProgressText"
+                        >
+                            0%
+                        </strong>
+
+                    </div>
+
+
+                    <div class="upload-progress-track">
+
+                        <div
+                            id="r2ProgressBar"
+                            class="upload-progress-bar"
+                            style="width:0%;"
+                        ></div>
+
+                    </div>
+
+                </div>
+
+
+                <p
+                    id="uploadStageMessage"
+                    class="upload-stage-message"
+                >
+                    Preparing...
+                </p>
+
+
+            </div>
+
+
         </form>
 
     </section>
 
 
-    <!-- =========================
-         MOVIE MANAGEMENT
-    ========================= -->
+    <!-- ==================================================
+         MOVIES
+    ================================================== -->
 
     <section class="admin-panel">
+
 
         <div class="movie-list-header">
 
@@ -336,6 +423,7 @@
 
         <div id="movieList"></div>
 
+
     </section>
 
 
@@ -344,9 +432,9 @@
 </div>
 
 
-<!-- =========================
-     EDIT MOVIE MODAL
-========================= -->
+<!-- ==================================================
+     EDIT MODAL
+================================================== -->
 
 <div
     id="editModal"
@@ -440,9 +528,9 @@
                     <input
                         type="number"
                         id="editRating"
-                        step="0.1"
                         min="0"
                         max="10"
+                        step="0.1"
                         required
                     >
 
@@ -471,13 +559,12 @@
                 Description
             </label>
 
+
             <textarea
                 id="editDescription"
                 required
             ></textarea>
 
-
-            <!-- CURRENT POSTER -->
 
             <div class="edit-current-poster">
 
@@ -485,23 +572,15 @@
                     Current Poster
                 </label>
 
+
                 <img
                     id="editPosterPreview"
                     src=""
-                    alt="Current poster"
-                    style="
-                        width:120px;
-                        height:170px;
-                        object-fit:cover;
-                        border-radius:6px;
-                        margin-top:8px;
-                    "
+                    alt="Poster"
                 >
 
             </div>
 
-
-            <!-- REPLACE FILES -->
 
             <div class="file-grid">
 
@@ -518,10 +597,6 @@
                         accept="image/jpeg,image/png,image/webp"
                     >
 
-                    <small>
-                        Leave empty to keep current poster
-                    </small>
-
                 </label>
 
 
@@ -536,10 +611,6 @@
                         id="editVideo"
                         accept="video/mp4,video/webm"
                     >
-
-                    <small>
-                        Leave empty to keep current video
-                    </small>
 
                 </label>
 
@@ -577,6 +648,7 @@
 
 
         </form>
+
 
     </div>
 

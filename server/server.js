@@ -22,7 +22,6 @@ const {
 
 // ==================================================
 // LOAD LOCAL .ENV
-// Railway uses Variables
 // ==================================================
 
 function loadEnv() {
@@ -35,11 +34,7 @@ function loadEnv() {
         );
 
 
-    if (
-        !fs.existsSync(
-            envPath
-        )
-    ) {
+    if (!fs.existsSync(envPath)) {
         return;
     }
 
@@ -124,7 +119,7 @@ loadEnv();
 
 
 // ==================================================
-// DATABASE / EXPRESS
+// APP / DATABASE
 // ==================================================
 
 const db =
@@ -140,7 +135,7 @@ const PORT =
 
 
 // ==================================================
-// ADMIN CONFIG
+// ADMIN
 // ==================================================
 
 const ADMIN_USERNAME =
@@ -160,7 +155,7 @@ const SESSION_DURATION =
 
 
 // ==================================================
-// CLOUDFLARE R2 CONFIG
+// CLOUDFLARE R2
 // ==================================================
 
 const R2_ACCOUNT_ID =
@@ -189,8 +184,6 @@ const R2_ENDPOINT =
     );
 
 
-// Signed URL valid 12 hours
-
 const R2_URL_EXPIRY =
     60 * 60 * 12;
 
@@ -202,7 +195,8 @@ const R2_URL_EXPIRY =
 const r2 =
     new S3Client({
 
-        region: "auto",
+        region:
+            "auto",
 
         endpoint:
             R2_ENDPOINT,
@@ -227,7 +221,7 @@ const r2 =
 
 
 // ==================================================
-// CHECK R2 CONFIG
+// CHECK R2
 // ==================================================
 
 function checkR2Config() {
@@ -239,23 +233,20 @@ function checkR2Config() {
         missing.push("R2_ACCOUNT_ID");
     }
 
-
     if (!R2_ACCESS_KEY_ID) {
         missing.push("R2_ACCESS_KEY_ID");
     }
 
-
     if (!R2_SECRET_ACCESS_KEY) {
         missing.push("R2_SECRET_ACCESS_KEY");
     }
-
 
     if (!R2_BUCKET) {
         missing.push("R2_BUCKET");
     }
 
 
-    if (missing.length > 0) {
+    if (missing.length) {
 
         throw new Error(
             "Missing R2 variables: "
@@ -270,7 +261,6 @@ function checkR2Config() {
 
 // ==================================================
 // DATA ROOT
-// SQLite + compatibility with old files
 // ==================================================
 
 const dataRoot =
@@ -313,7 +303,7 @@ fs.mkdirSync(
 
 
 // ==================================================
-// TEMP UPLOAD FOLDER
+// TEMP UPLOAD
 // ==================================================
 
 const tempRoot =
@@ -340,7 +330,7 @@ fs.mkdirSync(
 
 
 // ==================================================
-// EXPRESS MIDDLEWARE
+// MIDDLEWARE
 // ==================================================
 
 app.use(
@@ -355,8 +345,6 @@ app.use(
 );
 
 
-// Static site
-
 app.use(
     express.static(
         path.join(
@@ -367,7 +355,7 @@ app.use(
 );
 
 
-// Legacy Railway volume files
+// Legacy local uploads
 
 app.use(
     "/images",
@@ -386,7 +374,7 @@ app.use(
 
 
 // ==================================================
-// PASSWORD VERIFY
+// PASSWORD
 // ==================================================
 
 function verifyPassword(
@@ -398,13 +386,15 @@ function verifyPassword(
         !ADMIN_PASSWORD_HASH ||
         !ADMIN_PASSWORD_SALT
     ) {
+
         return false;
+
     }
 
 
     try {
 
-        const derivedKey =
+        const derived =
             crypto.scryptSync(
                 password,
                 ADMIN_PASSWORD_SALT,
@@ -412,7 +402,7 @@ function verifyPassword(
             );
 
 
-        const storedKey =
+        const stored =
             Buffer.from(
                 ADMIN_PASSWORD_HASH,
                 "hex"
@@ -420,25 +410,27 @@ function verifyPassword(
 
 
         if (
-            derivedKey.length !==
-            storedKey.length
+            derived.length !==
+            stored.length
         ) {
+
             return false;
+
         }
 
 
         return crypto.timingSafeEqual(
-            derivedKey,
-            storedKey
+            derived,
+            stored
         );
 
 
     } catch (error) {
 
         console.error(
-            "Password verify error:",
             error
         );
+
 
         return false;
 
@@ -448,7 +440,7 @@ function verifyPassword(
 
 
 // ==================================================
-// SESSION
+// ADMIN SESSION
 // ==================================================
 
 function createSession(
@@ -465,10 +457,6 @@ function createSession(
         Date.now();
 
 
-    const expiresAt =
-        now + SESSION_DURATION;
-
-
     db.prepare(`
         INSERT INTO admin_sessions
         (
@@ -477,12 +465,18 @@ function createSession(
             created_at,
             expires_at
         )
+
         VALUES (?, ?, ?, ?)
     `).run(
+
         token,
+
         username,
+
         now,
-        expiresAt
+
+        now + SESSION_DURATION
+
     );
 
 
@@ -543,7 +537,9 @@ function requireAdmin(
             SELECT *
             FROM admin_sessions
             WHERE token = ?
-        `).get(token);
+        `).get(
+            token
+        );
 
 
     if (!session) {
@@ -570,7 +566,9 @@ function requireAdmin(
         db.prepare(`
             DELETE FROM admin_sessions
             WHERE token = ?
-        `).run(token);
+        `).run(
+            token
+        );
 
 
         return res
@@ -597,7 +595,7 @@ function requireAdmin(
 
 
 // ==================================================
-// ADMIN LOGIN
+// LOGIN
 // ==================================================
 
 app.post(
@@ -613,9 +611,12 @@ app.post(
 
 
         if (
-            username !== ADMIN_USERNAME
+            username !==
+                ADMIN_USERNAME
             ||
-            !verifyPassword(password)
+            !verifyPassword(
+                password
+            )
         ) {
 
             return res
@@ -654,7 +655,8 @@ app.post(
 
 
         if (
-            process.env.RAILWAY_ENVIRONMENT
+            process.env
+                .RAILWAY_ENVIRONMENT
         ) {
 
             cookie.push(
@@ -681,7 +683,7 @@ app.post(
 
 
 // ==================================================
-// ADMIN LOGOUT
+// LOGOUT
 // ==================================================
 
 app.post(
@@ -698,7 +700,9 @@ app.post(
             db.prepare(`
                 DELETE FROM admin_sessions
                 WHERE token = ?
-            `).run(token);
+            `).run(
+                token
+            );
 
         }
 
@@ -745,7 +749,238 @@ app.get(
 
 
 // ==================================================
-// SAFE FILENAME
+// TWO-STAGE UPLOAD PROGRESS STORE
+// ==================================================
+
+const uploadProgress =
+    new Map();
+
+
+function ensureUploadProgress(
+    uploadId
+) {
+
+    if (
+        !uploadProgress.has(
+            uploadId
+        )
+    ) {
+
+        uploadProgress.set(
+            uploadId,
+            {
+
+                stage:
+                    "waiting",
+
+                r2Percent:
+                    0,
+
+                message:
+                    "Waiting for upload...",
+
+                updatedAt:
+                    Date.now()
+
+            }
+        );
+
+    }
+
+
+    return uploadProgress.get(
+        uploadId
+    );
+
+}
+
+
+function setUploadProgress(
+    uploadId,
+    values
+) {
+
+    const current =
+        ensureUploadProgress(
+            uploadId
+        );
+
+
+    const next = {
+
+        ...current,
+
+        ...values,
+
+        updatedAt:
+            Date.now()
+
+    };
+
+
+    uploadProgress.set(
+        uploadId,
+        next
+    );
+
+
+    return next;
+
+}
+
+
+// ==================================================
+// SSE R2 PROGRESS
+// ==================================================
+
+app.get(
+    "/api/upload-progress/:uploadId",
+
+    requireAdmin,
+
+    (req, res) => {
+
+        const uploadId =
+            req.params.uploadId;
+
+
+        ensureUploadProgress(
+            uploadId
+        );
+
+
+        res.setHeader(
+            "Content-Type",
+            "text/event-stream"
+        );
+
+
+        res.setHeader(
+            "Cache-Control",
+            "no-cache"
+        );
+
+
+        res.setHeader(
+            "Connection",
+            "keep-alive"
+        );
+
+
+        res.flushHeaders();
+
+
+        const sendProgress =
+            () => {
+
+                const data =
+                    uploadProgress.get(
+                        uploadId
+                    );
+
+
+                if (!data) {
+                    return;
+                }
+
+
+                res.write(
+                    `data: ${JSON.stringify(data)}\n\n`
+                );
+
+
+                if (
+                    data.stage ===
+                        "done"
+                    ||
+                    data.stage ===
+                        "error"
+                ) {
+
+                    clearInterval(
+                        timer
+                    );
+
+
+                    res.end();
+
+                }
+
+            };
+
+
+        sendProgress();
+
+
+        const timer =
+            setInterval(
+                sendProgress,
+                350
+            );
+
+
+        req.on(
+            "close",
+
+            () => {
+
+                clearInterval(
+                    timer
+                );
+
+            }
+        );
+
+    }
+);
+
+
+// ==================================================
+// CLEAN OLD PROGRESS DATA
+// ==================================================
+
+setInterval(
+    () => {
+
+        const maxAge =
+            1000 * 60 * 30;
+
+
+        const now =
+            Date.now();
+
+
+        for (
+            const [
+                id,
+                state
+            ]
+            of uploadProgress
+        ) {
+
+            if (
+                now -
+                state.updatedAt
+                >
+                maxAge
+            ) {
+
+                uploadProgress.delete(
+                    id
+                );
+
+            }
+
+        }
+
+    },
+
+    1000 * 60 * 5
+);
+
+
+// ==================================================
+// SAFE FILE NAME
 // ==================================================
 
 function safeFilename(
@@ -810,7 +1045,7 @@ function safeFilename(
 
 
 // ==================================================
-// R2 KEY
+// CREATE R2 KEY
 // ==================================================
 
 function createR2Key(
@@ -825,7 +1060,8 @@ function createR2Key(
 
 
     if (
-        type === "poster"
+        type ===
+        "poster"
     ) {
 
         return (
@@ -843,13 +1079,13 @@ function createR2Key(
 
 
 // ==================================================
-// MULTIPART UPLOAD TO R2
-// V22 LARGE FILE SUPPORT
+// R2 MULTIPART UPLOAD
 // ==================================================
 
 async function uploadFileToR2(
     localFile,
-    type
+    type,
+    onProgress
 ) {
 
     checkR2Config();
@@ -877,7 +1113,8 @@ async function uploadFileToR2(
     const uploader =
         new Upload({
 
-            client: r2,
+            client:
+                r2,
 
             params: {
 
@@ -905,13 +1142,8 @@ async function uploadFileToR2(
 
             },
 
-
-            // 4 parts simultaneously
-
-            queueSize: 4,
-
-
-            // 10MB per part
+            queueSize:
+                4,
 
             partSize:
                 10
@@ -920,18 +1152,10 @@ async function uploadFileToR2(
                 *
                 1024,
 
-
-            // Remove incomplete parts
-            // automatically on failure
-
             leavePartsOnError:
                 false
 
         });
-
-
-    let lastPercent =
-        -1;
 
 
     uploader.on(
@@ -939,41 +1163,20 @@ async function uploadFileToR2(
 
         progress => {
 
-            if (
-                !progress.total
-            ) {
-                return;
-            }
-
-
-            const percent =
-                Math.round(
-                    (
-                        progress.loaded
-                        /
-                        progress.total
-                    )
-                    *
-                    100
+            const loaded =
+                Number(
+                    progress.loaded || 0
                 );
 
 
-            /*
-             * Don't flood Railway logs
-             * with duplicate percentages.
-             */
-
             if (
-                percent !==
-                lastPercent
+                typeof onProgress ===
+                "function"
             ) {
 
-                lastPercent =
-                    percent;
-
-
-                console.log(
-                    `R2 upload ${type}: ${percent}%`
+                onProgress(
+                    loaded,
+                    stat.size
                 );
 
             }
@@ -982,31 +1185,36 @@ async function uploadFileToR2(
     );
 
 
-    console.log(
-        `Starting R2 ${type} upload: ${localFile.originalname}`
-    );
-
-
-    console.log(
-        `File size: ${(stat.size / 1024 / 1024).toFixed(2)} MB`
-    );
-
-
     await uploader.done();
 
 
-    console.log(
-        `R2 ${type} upload complete: ${key}`
-    );
+    if (
+        typeof onProgress ===
+        "function"
+    ) {
+
+        onProgress(
+            stat.size,
+            stat.size
+        );
+
+    }
 
 
-    return key;
+    return {
+
+        key,
+
+        size:
+            stat.size
+
+    };
 
 }
 
 
 // ==================================================
-// DELETE R2 OBJECT
+// DELETE R2
 // ==================================================
 
 async function deleteFromR2(
@@ -1037,7 +1245,7 @@ async function deleteFromR2(
 
 
 // ==================================================
-// SIGN R2 OBJECT
+// SIGNED R2 URL
 // ==================================================
 
 async function getR2SignedUrl(
@@ -1079,7 +1287,7 @@ async function getR2SignedUrl(
 
 
 // ==================================================
-// PUBLIC MOVIE OBJECT
+// PUBLIC MOVIE
 // ==================================================
 
 async function publicMovie(
@@ -1134,70 +1342,60 @@ async function publicMovie(
 
 
 // ==================================================
-// MULTER TEMP STORAGE
+// MULTER
 // ==================================================
 
 const storage =
     multer.diskStorage({
 
-        destination:
-            function (
-                req,
-                file,
-                cb
-            ) {
+        destination(
+            req,
+            file,
+            cb
+        ) {
 
-                cb(
-                    null,
-                    uploadTempFolder
-                );
+            cb(
+                null,
+                uploadTempFolder
+            );
 
-            },
-
-
-        filename:
-            function (
-                req,
-                file,
-                cb
-            ) {
-
-                const ext =
-                    path.extname(
-                        file.originalname
-                    );
+        },
 
 
-                cb(
+        filename(
+            req,
+            file,
+            cb
+        ) {
 
-                    null,
+            cb(
 
-                    Date.now()
+                null,
 
-                    +
+                Date.now()
 
-                    "-"
+                +
 
-                    +
+                "-"
 
-                    crypto
-                        .randomBytes(5)
-                        .toString("hex")
+                +
 
-                    +
+                crypto
+                    .randomBytes(5)
+                    .toString("hex")
 
-                    ext
+                +
 
-                );
+                path.extname(
+                    file.originalname
+                )
 
-            }
+            );
+
+        }
 
     });
 
-
-// ==================================================
-// FILE FILTER
-// ==================================================
 
 function fileFilter(
     req,
@@ -1210,19 +1408,13 @@ function fileFilter(
         "poster"
     ) {
 
-        const allowed = [
-
-            "image/jpeg",
-
-            "image/png",
-
-            "image/webp"
-
-        ];
-
-
         if (
-            !allowed.includes(
+            ![
+                "image/jpeg",
+                "image/png",
+                "image/webp"
+            ]
+            .includes(
                 file.mimetype
             )
         ) {
@@ -1243,17 +1435,12 @@ function fileFilter(
         "video"
     ) {
 
-        const allowed = [
-
-            "video/mp4",
-
-            "video/webm"
-
-        ];
-
-
         if (
-            !allowed.includes(
+            ![
+                "video/mp4",
+                "video/webm"
+            ]
+            .includes(
                 file.mimetype
             )
         ) {
@@ -1301,16 +1488,14 @@ const upload =
 
 
 // ==================================================
-// TEMP FILE CLEANUP
+// TEMP CLEANUP
 // ==================================================
 
 async function removeTempFile(
     file
 ) {
 
-    if (
-        !file?.path
-    ) {
+    if (!file?.path) {
         return;
     }
 
@@ -1337,7 +1522,7 @@ async function removeAllTempFiles(
     }
 
 
-    const allFiles = [
+    const list = [
 
         ...(files.poster || []),
 
@@ -1347,7 +1532,7 @@ async function removeAllTempFiles(
 
 
     await Promise.all(
-        allFiles.map(
+        list.map(
             removeTempFile
         )
     );
@@ -1356,7 +1541,7 @@ async function removeAllTempFiles(
 
 
 // ==================================================
-// GET ALL MOVIES
+// GET MOVIES
 // ==================================================
 
 app.get(
@@ -1377,25 +1562,22 @@ app.get(
                 `).all();
 
 
-            const result =
+            const movies =
                 await Promise.all(
-
                     rows.map(
                         publicMovie
                     )
-
                 );
 
 
             res.json(
-                result
+                movies
             );
 
 
         } catch (error) {
 
             console.error(
-                "Load movies error:",
                 error
             );
 
@@ -1463,7 +1645,6 @@ app.get(
         } catch (error) {
 
             console.error(
-                "Load movie error:",
                 error
             );
 
@@ -1484,7 +1665,7 @@ app.get(
 
 
 // ==================================================
-// UPLOAD MOVIE
+// UPLOAD MOVIE WITH TWO STAGES
 // ==================================================
 
 app.post(
@@ -1500,7 +1681,6 @@ app.post(
             maxCount:
                 1
         },
-
         {
             name:
                 "video",
@@ -1514,6 +1694,14 @@ app.post(
         req,
         res
     ) => {
+
+        const uploadId =
+            String(
+                req.body.uploadId
+                ||
+                crypto.randomUUID()
+            );
+
 
         let posterKey =
             null;
@@ -1542,14 +1730,9 @@ app.post(
                 !videoFile
             ) {
 
-                return res
-                    .status(400)
-                    .json({
-
-                        error:
-                            "Poster and video are required"
-
-                    });
+                throw new Error(
+                    "Poster and video are required"
+                );
 
             }
 
@@ -1567,40 +1750,186 @@ app.post(
 
             if (
                 !title ||
-                !String(
-                    title
-                ).trim()
+                !String(title).trim()
             ) {
 
-                return res
-                    .status(400)
-                    .json({
-
-                        error:
-                            "Movie title is required"
-
-                    });
+                throw new Error(
+                    "Movie title is required"
+                );
 
             }
 
 
-            // POSTER
+            const posterStat =
+                await fsp.stat(
+                    posterFile.path
+                );
+
+
+            const videoStat =
+                await fsp.stat(
+                    videoFile.path
+                );
+
+
+            const totalCloudBytes =
+                posterStat.size
+                +
+                videoStat.size;
+
+
+            let posterUploaded =
+                0;
+
+
+            let videoUploaded =
+                0;
+
+
+            function updateOverallR2(
+                message
+            ) {
+
+                const loaded =
+                    posterUploaded
+                    +
+                    videoUploaded;
+
+
+                const percent =
+                    totalCloudBytes > 0
+
+                        ? Math.min(
+                            100,
+                            Math.round(
+                                (
+                                    loaded /
+                                    totalCloudBytes
+                                )
+                                *
+                                100
+                            )
+                        )
+
+                        : 0;
+
+
+                setUploadProgress(
+                    uploadId,
+                    {
+
+                        stage:
+                            "r2",
+
+                        r2Percent:
+                            percent,
+
+                        message
+
+                    }
+                );
+
+            }
+
+
+            setUploadProgress(
+                uploadId,
+                {
+
+                    stage:
+                        "r2",
+
+                    r2Percent:
+                        0,
+
+                    message:
+                        "Uploading poster to Cloudflare R2..."
+
+                }
+            );
+
+
+            // =========================
+            // POSTER → R2
+            // =========================
+
+            const posterUpload =
+                await uploadFileToR2(
+
+                    posterFile,
+
+                    "poster",
+
+                    loaded => {
+
+                        posterUploaded =
+                            loaded;
+
+
+                        updateOverallR2(
+                            "Uploading poster to Cloudflare R2..."
+                        );
+
+                    }
+
+                );
+
 
             posterKey =
+                posterUpload.key;
+
+
+            posterUploaded =
+                posterStat.size;
+
+
+            updateOverallR2(
+                "Uploading movie to Cloudflare R2..."
+            );
+
+
+            // =========================
+            // VIDEO → R2
+            // =========================
+
+            const videoUpload =
                 await uploadFileToR2(
-                    posterFile,
-                    "poster"
+
+                    videoFile,
+
+                    "video",
+
+                    loaded => {
+
+                        videoUploaded =
+                            loaded;
+
+
+                        updateOverallR2(
+                            "Uploading movie to Cloudflare R2..."
+                        );
+
+                    }
+
                 );
 
-
-            // VIDEO MULTIPART
 
             videoKey =
-                await uploadFileToR2(
-                    videoFile,
-                    "video"
-                );
+                videoUpload.key;
 
+
+            videoUploaded =
+                videoStat.size;
+
+
+            updateOverallR2(
+                "Saving movie to database..."
+            );
+
+
+            // =========================
+            // SQLITE
+            // =========================
 
             const result =
                 db.prepare(`
@@ -1612,10 +1941,8 @@ app.post(
                         rating,
                         duration,
                         description,
-
                         poster,
                         video,
-
                         poster_key,
                         video_key
                     )
@@ -1626,9 +1953,7 @@ app.post(
                     )
                 `).run(
 
-                    String(
-                        title
-                    ).trim(),
+                    String(title).trim(),
 
                     year,
 
@@ -1651,12 +1976,31 @@ app.post(
                 );
 
 
+            setUploadProgress(
+                uploadId,
+                {
+
+                    stage:
+                        "done",
+
+                    r2Percent:
+                        100,
+
+                    message:
+                        "Movie uploaded successfully"
+
+                }
+            );
+
+
             res.json({
 
                 success: true,
 
                 id:
-                    result.lastInsertRowid
+                    result.lastInsertRowid,
+
+                uploadId
 
             });
 
@@ -1669,11 +2013,25 @@ app.post(
             );
 
 
+            setUploadProgress(
+                uploadId,
+                {
+
+                    stage:
+                        "error",
+
+                    message:
+                        error.message
+                        ||
+                        "Upload failed"
+
+                }
+            );
+
+
             try {
 
-                if (
-                    posterKey
-                ) {
+                if (posterKey) {
 
                     await deleteFromR2(
                         posterKey
@@ -1682,9 +2040,7 @@ app.post(
                 }
 
 
-                if (
-                    videoKey
-                ) {
+                if (videoKey) {
 
                     await deleteFromR2(
                         videoKey
@@ -1697,7 +2053,6 @@ app.post(
             ) {
 
                 console.error(
-                    "R2 cleanup error:",
                     cleanupError
                 );
 
@@ -1711,7 +2066,7 @@ app.post(
                     error:
                         error.message
                         ||
-                        "Movie upload failed"
+                        "Upload failed"
 
                 });
 
@@ -1745,7 +2100,6 @@ app.put(
             maxCount:
                 1
         },
-
         {
             name:
                 "video",
@@ -1808,22 +2162,30 @@ app.put(
 
             if (posterFile) {
 
-                newPosterKey =
+                const result =
                     await uploadFileToR2(
                         posterFile,
                         "poster"
                     );
+
+
+                newPosterKey =
+                    result.key;
 
             }
 
 
             if (videoFile) {
 
-                newVideoKey =
+                const result =
                     await uploadFileToR2(
                         videoFile,
                         "video"
                     );
+
+
+                newVideoKey =
+                    result.key;
 
             }
 
@@ -1840,27 +2202,13 @@ app.put(
 
 
             const finalPosterKey =
-                newPosterKey
-                ||
+                newPosterKey ||
                 movie.poster_key;
 
 
             const finalVideoKey =
-                newVideoKey
-                ||
+                newVideoKey ||
                 movie.video_key;
-
-
-            const finalPoster =
-                finalPosterKey
-                    ? null
-                    : movie.poster;
-
-
-            const finalVideo =
-                finalVideoKey
-                    ? null
-                    : movie.video;
 
 
             db.prepare(`
@@ -1873,10 +2221,8 @@ app.put(
                     rating = ?,
                     duration = ?,
                     description = ?,
-
                     poster = ?,
                     video = ?,
-
                     poster_key = ?,
                     video_key = ?
 
@@ -1907,9 +2253,13 @@ app.put(
                     ? description
                     : movie.description,
 
-                finalPoster,
+                finalPosterKey
+                    ? null
+                    : movie.poster,
 
-                finalVideo,
+                finalVideoKey
+                    ? null
+                    : movie.video,
 
                 finalPosterKey,
 
@@ -1920,62 +2270,33 @@ app.put(
             );
 
 
-            // DELETE OLD R2 POSTER
-
             if (
                 newPosterKey &&
                 movie.poster_key
             ) {
 
-                try {
-
-                    await deleteFromR2(
-                        movie.poster_key
-                    );
-
-                } catch (error) {
-
-                    console.error(
-                        "Old poster cleanup failed:",
-                        error
-                    );
-
-                }
+                await deleteFromR2(
+                    movie.poster_key
+                );
 
             }
 
-
-            // DELETE OLD R2 VIDEO
 
             if (
                 newVideoKey &&
                 movie.video_key
             ) {
 
-                try {
-
-                    await deleteFromR2(
-                        movie.video_key
-                    );
-
-                } catch (error) {
-
-                    console.error(
-                        "Old video cleanup failed:",
-                        error
-                    );
-
-                }
+                await deleteFromR2(
+                    movie.video_key
+                );
 
             }
 
 
             res.json({
 
-                success: true,
-
-                message:
-                    "Movie updated successfully"
+                success: true
 
             });
 
@@ -2011,15 +2332,8 @@ app.put(
 
                 }
 
-            } catch (
-                cleanupError
-            ) {
-
-                console.error(
-                    "R2 edit cleanup error:",
-                    cleanupError
-                );
-
+            } catch {
+                // ignore
             }
 
 
@@ -2030,7 +2344,7 @@ app.put(
                     error:
                         error.message
                         ||
-                        "Movie update failed"
+                        "Update failed"
 
                 });
 
@@ -2099,20 +2413,9 @@ app.delete(
                 movie.poster_key
             ) {
 
-                try {
-
-                    await deleteFromR2(
-                        movie.poster_key
-                    );
-
-                } catch (error) {
-
-                    console.error(
-                        "Poster R2 delete failed:",
-                        error
-                    );
-
-                }
+                await deleteFromR2(
+                    movie.poster_key
+                );
 
             }
 
@@ -2121,43 +2424,8 @@ app.delete(
                 movie.video_key
             ) {
 
-                try {
-
-                    await deleteFromR2(
-                        movie.video_key
-                    );
-
-                } catch (error) {
-
-                    console.error(
-                        "Video R2 delete failed:",
-                        error
-                    );
-
-                }
-
-            }
-
-
-            if (
-                !movie.poster_key &&
-                movie.poster
-            ) {
-
-                deleteLegacyFile(
-                    movie.poster
-                );
-
-            }
-
-
-            if (
-                !movie.video_key &&
-                movie.video
-            ) {
-
-                deleteLegacyFile(
-                    movie.video
+                await deleteFromR2(
+                    movie.video_key
                 );
 
             }
@@ -2173,7 +2441,6 @@ app.delete(
         } catch (error) {
 
             console.error(
-                "Delete movie error:",
                 error
             );
 
@@ -2183,7 +2450,7 @@ app.delete(
                 .json({
 
                     error:
-                        "Failed to delete movie"
+                        "Delete failed"
 
                 });
 
@@ -2191,94 +2458,6 @@ app.delete(
 
     }
 );
-
-
-// ==================================================
-// DELETE OLD LOCAL FILE
-// ==================================================
-
-function deleteLegacyFile(
-    relativePath
-) {
-
-    if (!relativePath) {
-        return;
-    }
-
-
-    const normalized =
-        String(
-            relativePath
-        )
-        .replace(
-            /\\/g,
-            "/"
-        );
-
-
-    let filePath =
-        null;
-
-
-    if (
-        normalized.startsWith(
-            "images/"
-        )
-    ) {
-
-        filePath =
-            path.join(
-                legacyImagesFolder,
-                path.basename(
-                    normalized
-                )
-            );
-
-    }
-
-
-    if (
-        normalized.startsWith(
-            "movies/"
-        )
-    ) {
-
-        filePath =
-            path.join(
-                legacyMoviesFolder,
-                path.basename(
-                    normalized
-                )
-            );
-
-    }
-
-
-    if (
-        filePath &&
-        fs.existsSync(
-            filePath
-        )
-    ) {
-
-        try {
-
-            fs.unlinkSync(
-                filePath
-            );
-
-        } catch (error) {
-
-            console.error(
-                "Legacy file cleanup:",
-                error
-            );
-
-        }
-
-    }
-
-}
 
 
 // ==================================================
@@ -2297,11 +2476,9 @@ setInterval(
                 Date.now()
             );
 
-
         } catch (error) {
 
             console.error(
-                "Session cleanup:",
                 error
             );
 
@@ -2332,16 +2509,13 @@ app.use(
 
 
         if (
-            error
-            instanceof
+            error instanceof
             multer.MulterError
         ) {
 
             return res
                 .status(400)
                 .json({
-
-                    success: false,
 
                     error:
                         error.message
@@ -2355,8 +2529,6 @@ app.use(
             .status(500)
             .json({
 
-                success: false,
-
                 error:
                     error.message
                     ||
@@ -2369,11 +2541,12 @@ app.use(
 
 
 // ==================================================
-// START SERVER
+// START
 // ==================================================
 
 app.listen(
     PORT,
+
     () => {
 
         console.log(
@@ -2388,17 +2561,6 @@ app.listen(
 
             console.log(
                 `Cloudflare R2 enabled: ${R2_BUCKET}`
-            );
-
-
-            console.log(
-                "R2 multipart upload enabled"
-            );
-
-        } else {
-
-            console.log(
-                "Cloudflare R2 is not configured"
             );
 
         }
