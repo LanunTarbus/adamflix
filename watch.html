@@ -50,7 +50,9 @@
         id="playerContainer"
         class="custom-player"
     >
-<video
+
+
+        <video
             id="videoPlayer"
             preload="metadata"
             playsinline
@@ -189,7 +191,9 @@
                     >
                         ⛶
                     </button>
-</div>
+
+
+                </div>
 
 
             </div>
@@ -430,40 +434,6 @@ const fullscreenButton =
     document.getElementById(
         "fullscreenButton"
     );
-
-
-// ==================================================
-// iOS / iPadOS DETECTION
-// ==================================================
-
-const isIOS =
-    /iPhone|iPad|iPod/i.test(
-        navigator.userAgent
-    )
-    ||
-    (
-        navigator.platform === "MacIntel"
-        &&
-        navigator.maxTouchPoints > 1
-    );
-
-
-/*
- * iPhone/iPad Safari is most reliable with the
- * browser's native <video> controls. Native controls
- * provide Apple's own fullscreen button.
- */
-if (isIOS) {
-
-    player.controls = true;
-
-    controls.style.display =
-        "none";
-
-    centerPlayButton.style.display =
-        "none";
-
-}
 
 
 let currentMovie = null;
@@ -962,75 +932,31 @@ function updateVolumeIcon() {
 
 // ==================================================
 // FULLSCREEN
-// Desktop / Android / iPhone / iPad
+// Desktop + Android + iPhone / iOS Safari
 // ==================================================
 
 fullscreenButton.addEventListener(
     "click",
 
-    async function (event) {
-
-        event.preventDefault();
-        event.stopPropagation();
-
+    async function () {
 
         try {
 
-            // ==========================================
-            // iPhone / iPad
-            // ==========================================
+            // iPhone / iOS Safari native video fullscreen
+            if (
+                typeof player.webkitEnterFullscreen === "function"
+                &&
+                !document.fullscreenEnabled
+            ) {
 
-            if (isIOS) {
-
-                /*
-                 * Apple's reliable fullscreen path is
-                 * fullscreen on the VIDEO element itself.
-                 */
-
-                if (
-                    typeof player.webkitEnterFullscreen ===
-                    "function"
-                ) {
-
-                    player.webkitEnterFullscreen();
-
-                    return;
-
-                }
-
-
-                if (
-                    typeof player.webkitEnterFullScreen ===
-                    "function"
-                ) {
-
-                    player.webkitEnterFullScreen();
-
-                    return;
-
-                }
-
-
-                /*
-                 * If Safari does not expose the method,
-                 * native controls are already enabled.
-                 * The user can use Safari's fullscreen icon.
-                 */
-
-                console.warn(
-                    "Use the native iOS video fullscreen button."
-                );
+                player.webkitEnterFullscreen();
 
                 return;
 
             }
 
 
-            // ==========================================
-            // STANDARD FULLSCREEN
-            // Chrome / Edge / Firefox / Android / Safari
-            // ==========================================
-
+            // Standard fullscreen
             if (
                 !document.fullscreenElement
                 &&
@@ -1044,32 +970,12 @@ fullscreenButton.addEventListener(
                     await playerContainer
                         .requestFullscreen();
 
-
-                    // Optional landscape lock on Android
-
-                    try {
-
-                        if (
-                            screen.orientation
-                            &&
-                            screen.orientation.lock
-                        ) {
-
-                            await screen.orientation
-                                .lock("landscape");
-
-                        }
-
-                    } catch {
-                        // Browser may reject orientation lock.
-                    }
-
-
                     return;
 
                 }
 
 
+                // Safari fallback
                 if (
                     playerContainer.webkitRequestFullscreen
                 ) {
@@ -1082,20 +988,25 @@ fullscreenButton.addEventListener(
                 }
 
 
+                // Last fallback: native video fullscreen
                 if (
-                    player.requestFullscreen
+                    typeof player.webkitEnterFullscreen === "function"
                 ) {
 
-                    await player
-                        .requestFullscreen();
+                    player.webkitEnterFullscreen();
 
                     return;
 
                 }
 
 
+                console.warn(
+                    "Fullscreen is not supported on this browser."
+                );
+
             } else {
 
+                // Exit standard fullscreen
                 if (
                     document.exitFullscreen
                 ) {
@@ -1121,7 +1032,6 @@ fullscreenButton.addEventListener(
 
             }
 
-
         } catch (error) {
 
             console.error(
@@ -1130,27 +1040,23 @@ fullscreenButton.addEventListener(
             );
 
 
-            // Last iOS attempt
+            // iOS emergency fallback
+            try {
 
-            if (
-                isIOS
-                &&
-                typeof player.webkitEnterFullscreen ===
-                    "function"
-            ) {
-
-                try {
+                if (
+                    typeof player.webkitEnterFullscreen === "function"
+                ) {
 
                     player.webkitEnterFullscreen();
 
-                } catch (fallbackError) {
-
-                    console.error(
-                        "iOS fullscreen fallback failed:",
-                        fallbackError
-                    );
-
                 }
+
+            } catch (fallbackError) {
+
+                console.error(
+                    "iOS fullscreen fallback failed:",
+                    fallbackError
+                );
 
             }
 
@@ -1161,19 +1067,19 @@ fullscreenButton.addEventListener(
 
 
 // ==================================================
-// FULLSCREEN STATE
+// FULLSCREEN CHANGE
 // ==================================================
 
 function updateFullscreenButton() {
 
-    const active =
+    const isFullscreen =
         document.fullscreenElement
         ||
         document.webkitFullscreenElement;
 
 
     fullscreenButton.textContent =
-        active
+        isFullscreen
             ? "✕"
             : "⛶";
 
@@ -1191,6 +1097,10 @@ document.addEventListener(
     updateFullscreenButton
 );
 
+
+// ==================================================
+// iOS VIDEO FULLSCREEN EVENTS
+// ==================================================
 
 player.addEventListener(
     "webkitbeginfullscreen",
@@ -1214,10 +1124,6 @@ player.addEventListener(
 
     }
 );
-
-
-
-
 
 
 // ==================================================
@@ -1713,63 +1619,6 @@ document
     );
 
 
-
-// ==================================================
-// MULTI GENRE HELPERS
-// ==================================================
-
-function parseGenres(
-    value
-) {
-
-    return String(
-        value || ""
-    )
-        .split(",")
-        .map(
-            genre =>
-                genre.trim()
-        )
-        .filter(Boolean);
-
-}
-
-
-function sharesGenre(
-    movieA,
-    movieB
-) {
-
-    const genresA =
-        parseGenres(
-            movieA.genre
-        )
-        .map(
-            genre =>
-                genre.toLowerCase()
-        );
-
-
-    const genresB =
-        parseGenres(
-            movieB.genre
-        )
-        .map(
-            genre =>
-                genre.toLowerCase()
-        );
-
-
-    return genresA.some(
-        genre =>
-            genresB.includes(
-                genre
-            )
-    );
-
-}
-
-
 // ==================================================
 // RELATED MOVIES
 // ==================================================
@@ -1796,56 +1645,8 @@ function renderRelatedMovies() {
 
                     &&
 
-                    sharesGenre(
-                        movie,
-                        currentMovie
-                    )
-            )
-            .sort(
-                (a, b) => {
-
-                    const currentGenres =
-                        parseGenres(
-                            currentMovie.genre
-                        )
-                        .map(
-                            genre =>
-                                genre.toLowerCase()
-                        );
-
-
-                    const aMatches =
-                        parseGenres(
-                            a.genre
-                        )
-                        .filter(
-                            genre =>
-                                currentGenres.includes(
-                                    genre.toLowerCase()
-                                )
-                        )
-                        .length;
-
-
-                    const bMatches =
-                        parseGenres(
-                            b.genre
-                        )
-                        .filter(
-                            genre =>
-                                currentGenres.includes(
-                                    genre.toLowerCase()
-                                )
-                        )
-                        .length;
-
-
-                    return (
-                        bMatches -
-                        aMatches
-                    );
-
-                }
+                    movie.genre ===
+                    currentMovie.genre
             )
             .slice(
                 0,
@@ -2028,10 +1829,8 @@ function selectNextMovie() {
 
                 &&
 
-                sharesGenre(
-                    movie,
-                    currentMovie
-                )
+                movie.genre ===
+                currentMovie.genre
         );
 
 
