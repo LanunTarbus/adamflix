@@ -7,7 +7,6 @@ const fsp = require("fs/promises");
 
 const {
     S3Client,
-    PutObjectCommand,
     GetObjectCommand,
     DeleteObjectCommand
 } = require("@aws-sdk/client-s3");
@@ -15,6 +14,10 @@ const {
 const {
     getSignedUrl
 } = require("@aws-sdk/s3-request-presigner");
+
+const {
+    Upload
+} = require("@aws-sdk/lib-storage");
 
 
 // ==================================================
@@ -37,9 +40,7 @@ function loadEnv() {
             envPath
         )
     ) {
-
         return;
-
     }
 
 
@@ -48,28 +49,20 @@ function loadEnv() {
             envPath,
             "utf8"
         )
-        .split(
-            /\r?\n/
-        );
+        .split(/\r?\n/);
 
 
-    for (
-        const line
-        of lines
-    ) {
+    for (const line of lines) {
 
         const trimmed =
             line.trim();
 
 
         if (
-            !trimmed
-            ||
+            !trimmed ||
             trimmed.startsWith("#")
         ) {
-
             continue;
-
         }
 
 
@@ -77,60 +70,44 @@ function loadEnv() {
             trimmed.indexOf("=");
 
 
-        if (
-            index === -1
-        ) {
-
+        if (index === -1) {
             continue;
-
         }
 
 
         const key =
             trimmed
-                .slice(
-                    0,
-                    index
-                )
+                .slice(0, index)
                 .trim();
 
 
         let value =
             trimmed
-                .slice(
-                    index + 1
-                )
+                .slice(index + 1)
                 .trim();
 
 
         if (
             (
-                value.startsWith('"')
-                &&
+                value.startsWith('"') &&
                 value.endsWith('"')
             )
             ||
             (
-                value.startsWith("'")
-                &&
+                value.startsWith("'") &&
                 value.endsWith("'")
             )
         ) {
 
             value =
-                value.slice(
-                    1,
-                    -1
-                );
+                value.slice(1, -1);
 
         }
 
 
         if (
-            key
-            &&
-            process.env[key]
-                === undefined
+            key &&
+            process.env[key] === undefined
         ) {
 
             process.env[key] =
@@ -159,9 +136,7 @@ const app =
 
 
 const PORT =
-    process.env.PORT
-    ||
-    3000;
+    process.env.PORT || 3000;
 
 
 // ==================================================
@@ -181,13 +156,7 @@ const ADMIN_PASSWORD_SALT =
 
 
 const SESSION_DURATION =
-    1000
-    *
-    60
-    *
-    60
-    *
-    8;
+    1000 * 60 * 60 * 8;
 
 
 // ==================================================
@@ -210,14 +179,20 @@ const R2_BUCKET =
     process.env.R2_BUCKET;
 
 
-// Signed media URL valid 12 hours
+const R2_ENDPOINT =
+    process.env.R2_ENDPOINT
+    ||
+    (
+        R2_ACCOUNT_ID
+            ? `https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com`
+            : undefined
+    );
+
+
+// Signed URL valid 12 hours
 
 const R2_URL_EXPIRY =
-    60
-    *
-    60
-    *
-    12;
+    60 * 60 * 12;
 
 
 // ==================================================
@@ -227,18 +202,14 @@ const R2_URL_EXPIRY =
 const r2 =
     new S3Client({
 
-        region:
-            "auto",
+        region: "auto",
 
         endpoint:
-            R2_ACCOUNT_ID
-                ? `https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com`
-                : undefined,
+            R2_ENDPOINT,
 
         credentials:
             (
-                R2_ACCESS_KEY_ID
-                &&
+                R2_ACCESS_KEY_ID &&
                 R2_SECRET_ACCESS_KEY
             )
                 ? {
@@ -265,44 +236,26 @@ function checkR2Config() {
 
 
     if (!R2_ACCOUNT_ID) {
-
-        missing.push(
-            "R2_ACCOUNT_ID"
-        );
-
+        missing.push("R2_ACCOUNT_ID");
     }
 
 
     if (!R2_ACCESS_KEY_ID) {
-
-        missing.push(
-            "R2_ACCESS_KEY_ID"
-        );
-
+        missing.push("R2_ACCESS_KEY_ID");
     }
 
 
     if (!R2_SECRET_ACCESS_KEY) {
-
-        missing.push(
-            "R2_SECRET_ACCESS_KEY"
-        );
-
+        missing.push("R2_SECRET_ACCESS_KEY");
     }
 
 
     if (!R2_BUCKET) {
-
-        missing.push(
-            "R2_BUCKET"
-        );
-
+        missing.push("R2_BUCKET");
     }
 
 
-    if (
-        missing.length > 0
-    ) {
+    if (missing.length > 0) {
 
         throw new Error(
             "Missing R2 variables: "
@@ -316,8 +269,8 @@ function checkR2Config() {
 
 
 // ==================================================
-// RAILWAY / LOCAL DATA ROOT
-// Used for SQLite + compatibility with old movies
+// DATA ROOT
+// SQLite + compatibility with old files
 // ==================================================
 
 const dataRoot =
@@ -361,7 +314,6 @@ fs.mkdirSync(
 
 // ==================================================
 // TEMP UPLOAD FOLDER
-// Movie only stays here during upload to R2
 // ==================================================
 
 const tempRoot =
@@ -403,7 +355,7 @@ app.use(
 );
 
 
-// Website files
+// Static site
 
 app.use(
     express.static(
@@ -415,11 +367,10 @@ app.use(
 );
 
 
-// Compatibility with old Railway Volume movies
+// Legacy Railway volume files
 
 app.use(
     "/images",
-
     express.static(
         legacyImagesFolder
     )
@@ -428,7 +379,6 @@ app.use(
 
 app.use(
     "/movies",
-
     express.static(
         legacyMoviesFolder
     )
@@ -444,15 +394,11 @@ function verifyPassword(
 ) {
 
     if (
-        !password
-        ||
-        !ADMIN_PASSWORD_HASH
-        ||
+        !password ||
+        !ADMIN_PASSWORD_HASH ||
         !ADMIN_PASSWORD_SALT
     ) {
-
         return false;
-
     }
 
 
@@ -474,32 +420,25 @@ function verifyPassword(
 
 
         if (
-            derivedKey.length
-            !==
+            derivedKey.length !==
             storedKey.length
         ) {
-
             return false;
-
         }
 
 
-        return crypto
-            .timingSafeEqual(
-                derivedKey,
-                storedKey
-            );
+        return crypto.timingSafeEqual(
+            derivedKey,
+            storedKey
+        );
 
 
-    } catch (
-        error
-    ) {
+    } catch (error) {
 
         console.error(
             "Password verify error:",
             error
         );
-
 
         return false;
 
@@ -509,7 +448,7 @@ function verifyPassword(
 
 
 // ==================================================
-// ADMIN SESSION
+// SESSION
 // ==================================================
 
 function createSession(
@@ -527,9 +466,7 @@ function createSession(
 
 
     const expiresAt =
-        now
-        +
-        SESSION_DURATION;
+        now + SESSION_DURATION;
 
 
     db.prepare(`
@@ -540,7 +477,6 @@ function createSession(
             created_at,
             expires_at
         )
-
         VALUES (?, ?, ?, ?)
     `).run(
         token,
@@ -560,9 +496,7 @@ function getSessionToken(
 ) {
 
     const cookies =
-        req.headers.cookie
-        ||
-        "";
+        req.headers.cookie || "";
 
 
     const match =
@@ -585,9 +519,7 @@ function requireAdmin(
 ) {
 
     const token =
-        getSessionToken(
-            req
-        );
+        getSessionToken(req);
 
 
     if (!token) {
@@ -611,9 +543,7 @@ function requireAdmin(
             SELECT *
             FROM admin_sessions
             WHERE token = ?
-        `).get(
-            token
-        );
+        `).get(token);
 
 
     if (!session) {
@@ -633,17 +563,14 @@ function requireAdmin(
 
 
     if (
-        Date.now()
-        >
+        Date.now() >
         session.expires_at
     ) {
 
         db.prepare(`
             DELETE FROM admin_sessions
             WHERE token = ?
-        `).run(
-            token
-        );
+        `).run(token);
 
 
         return res
@@ -686,13 +613,9 @@ app.post(
 
 
         if (
-            username
-            !==
-            ADMIN_USERNAME
+            username !== ADMIN_USERNAME
             ||
-            !verifyPassword(
-                password
-            )
+            !verifyPassword(password)
         ) {
 
             return res
@@ -731,8 +654,7 @@ app.post(
 
 
         if (
-            process.env
-                .RAILWAY_ENVIRONMENT
+            process.env.RAILWAY_ENVIRONMENT
         ) {
 
             cookie.push(
@@ -768,9 +690,7 @@ app.post(
     (req, res) => {
 
         const token =
-            getSessionToken(
-                req
-            );
+            getSessionToken(req);
 
 
         if (token) {
@@ -778,9 +698,7 @@ app.post(
             db.prepare(`
                 DELETE FROM admin_sessions
                 WHERE token = ?
-            `).run(
-                token
-            );
+            `).run(token);
 
         }
 
@@ -827,7 +745,7 @@ app.get(
 
 
 // ==================================================
-// SAFE OBJECT NAME
+// SAFE FILENAME
 // ==================================================
 
 function safeFilename(
@@ -892,7 +810,7 @@ function safeFilename(
 
 
 // ==================================================
-// GENERATE R2 KEY
+// R2 KEY
 // ==================================================
 
 function createR2Key(
@@ -925,7 +843,8 @@ function createR2Key(
 
 
 // ==================================================
-// UPLOAD FILE TO R2
+// MULTIPART UPLOAD TO R2
+// V22 LARGE FILE SUPPORT
 // ==================================================
 
 async function uploadFileToR2(
@@ -955,32 +874,129 @@ async function uploadFileToR2(
         );
 
 
-    await r2.send(
-        new PutObjectCommand({
+    const uploader =
+        new Upload({
 
-            Bucket:
-                R2_BUCKET,
+            client: r2,
 
-            Key:
-                key,
+            params: {
 
-            Body:
-                stream,
+                Bucket:
+                    R2_BUCKET,
 
-            ContentLength:
-                stat.size,
+                Key:
+                    key,
 
-            ContentType:
-                localFile.mimetype
-                ||
-                "application/octet-stream",
+                Body:
+                    stream,
 
-            CacheControl:
-                type === "poster"
-                    ? "public, max-age=86400"
-                    : "private, max-age=3600"
+                ContentLength:
+                    stat.size,
 
-        })
+                ContentType:
+                    localFile.mimetype
+                    ||
+                    "application/octet-stream",
+
+                CacheControl:
+                    type === "poster"
+                        ? "public, max-age=86400"
+                        : "private, max-age=3600"
+
+            },
+
+
+            // 4 parts simultaneously
+
+            queueSize: 4,
+
+
+            // 10MB per part
+
+            partSize:
+                10
+                *
+                1024
+                *
+                1024,
+
+
+            // Remove incomplete parts
+            // automatically on failure
+
+            leavePartsOnError:
+                false
+
+        });
+
+
+    let lastPercent =
+        -1;
+
+
+    uploader.on(
+        "httpUploadProgress",
+
+        progress => {
+
+            if (
+                !progress.total
+            ) {
+                return;
+            }
+
+
+            const percent =
+                Math.round(
+                    (
+                        progress.loaded
+                        /
+                        progress.total
+                    )
+                    *
+                    100
+                );
+
+
+            /*
+             * Don't flood Railway logs
+             * with duplicate percentages.
+             */
+
+            if (
+                percent !==
+                lastPercent
+            ) {
+
+                lastPercent =
+                    percent;
+
+
+                console.log(
+                    `R2 upload ${type}: ${percent}%`
+                );
+
+            }
+
+        }
+    );
+
+
+    console.log(
+        `Starting R2 ${type} upload: ${localFile.originalname}`
+    );
+
+
+    console.log(
+        `File size: ${(stat.size / 1024 / 1024).toFixed(2)} MB`
+    );
+
+
+    await uploader.done();
+
+
+    console.log(
+        `R2 ${type} upload complete: ${key}`
     );
 
 
@@ -990,7 +1006,7 @@ async function uploadFileToR2(
 
 
 // ==================================================
-// DELETE FROM R2
+// DELETE R2 OBJECT
 // ==================================================
 
 async function deleteFromR2(
@@ -1036,27 +1052,27 @@ async function getR2SignedUrl(
     checkR2Config();
 
 
-    return (
-        await getSignedUrl(
+    return await getSignedUrl(
 
-            r2,
+        r2,
 
-            new GetObjectCommand({
+        new GetObjectCommand({
 
-                Bucket:
-                    R2_BUCKET,
+            Bucket:
+                R2_BUCKET,
 
-                Key:
-                    key
+            Key:
+                key
 
-            }),
+        }),
 
-            {
-                expiresIn:
-                    R2_URL_EXPIRY
-            }
+        {
 
-        )
+            expiresIn:
+                R2_URL_EXPIRY
+
+        }
+
     );
 
 }
@@ -1180,7 +1196,7 @@ const storage =
 
 
 // ==================================================
-// FILE VALIDATION
+// FILE FILTER
 // ==================================================
 
 function fileFilter(
@@ -1295,9 +1311,7 @@ async function removeTempFile(
     if (
         !file?.path
     ) {
-
         return;
-
     }
 
 
@@ -1378,9 +1392,7 @@ app.get(
             );
 
 
-        } catch (
-            error
-        ) {
+        } catch (error) {
 
             console.error(
                 "Load movies error:",
@@ -1448,9 +1460,7 @@ app.get(
             );
 
 
-        } catch (
-            error
-        ) {
+        } catch (error) {
 
             console.error(
                 "Load movie error:",
@@ -1475,7 +1485,6 @@ app.get(
 
 // ==================================================
 // UPLOAD MOVIE
-// New poster + movie → Cloudflare R2
 // ==================================================
 
 app.post(
@@ -1529,8 +1538,7 @@ app.post(
 
 
             if (
-                !posterFile
-                ||
+                !posterFile ||
                 !videoFile
             ) {
 
@@ -1558,8 +1566,7 @@ app.post(
 
 
             if (
-                !title
-                ||
+                !title ||
                 !String(
                     title
                 ).trim()
@@ -1577,7 +1584,7 @@ app.post(
             }
 
 
-            // Upload poster
+            // POSTER
 
             posterKey =
                 await uploadFileToR2(
@@ -1586,7 +1593,7 @@ app.post(
                 );
 
 
-            // Upload video
+            // VIDEO MULTIPART
 
             videoKey =
                 await uploadFileToR2(
@@ -1619,7 +1626,9 @@ app.post(
                     )
                 `).run(
 
-                    String(title).trim(),
+                    String(
+                        title
+                    ).trim(),
 
                     year,
 
@@ -1652,9 +1661,7 @@ app.post(
             });
 
 
-        } catch (
-            error
-        ) {
+        } catch (error) {
 
             console.error(
                 "Upload movie error:",
@@ -1662,12 +1669,11 @@ app.post(
             );
 
 
-            // Rollback R2 objects
-            // if something failed
-
             try {
 
-                if (posterKey) {
+                if (
+                    posterKey
+                ) {
 
                     await deleteFromR2(
                         posterKey
@@ -1676,7 +1682,9 @@ app.post(
                 }
 
 
-                if (videoKey) {
+                if (
+                    videoKey
+                ) {
 
                     await deleteFromR2(
                         videoKey
@@ -1722,7 +1730,6 @@ app.post(
 
 // ==================================================
 // EDIT MOVIE
-// Optional replace poster / video in R2
 // ==================================================
 
 app.put(
@@ -1844,12 +1851,6 @@ app.put(
                 movie.video_key;
 
 
-            /*
-             * Keep old local paths
-             * only when movie has not
-             * yet been migrated to R2.
-             */
-
             const finalPoster =
                 finalPosterKey
                     ? null
@@ -1919,14 +1920,10 @@ app.put(
             );
 
 
-            /*
-             * Delete old R2 object only
-             * AFTER database succeeds.
-             */
+            // DELETE OLD R2 POSTER
 
             if (
-                newPosterKey
-                &&
+                newPosterKey &&
                 movie.poster_key
             ) {
 
@@ -1936,9 +1933,7 @@ app.put(
                         movie.poster_key
                     );
 
-                } catch (
-                    error
-                ) {
+                } catch (error) {
 
                     console.error(
                         "Old poster cleanup failed:",
@@ -1950,9 +1945,10 @@ app.put(
             }
 
 
+            // DELETE OLD R2 VIDEO
+
             if (
-                newVideoKey
-                &&
+                newVideoKey &&
                 movie.video_key
             ) {
 
@@ -1962,9 +1958,7 @@ app.put(
                         movie.video_key
                     );
 
-                } catch (
-                    error
-                ) {
+                } catch (error) {
 
                     console.error(
                         "Old video cleanup failed:",
@@ -1986,21 +1980,13 @@ app.put(
             });
 
 
-        } catch (
-            error
-        ) {
+        } catch (error) {
 
             console.error(
                 "Edit movie error:",
                 error
             );
 
-
-            /*
-             * If update failed,
-             * remove newly uploaded R2
-             * objects.
-             */
 
             try {
 
@@ -2101,10 +2087,6 @@ app.delete(
             }
 
 
-            /*
-             * Delete DB record first.
-             */
-
             db.prepare(`
                 DELETE FROM movies
                 WHERE id = ?
@@ -2112,10 +2094,6 @@ app.delete(
                 req.params.id
             );
 
-
-            /*
-             * R2 cleanup.
-             */
 
             if (
                 movie.poster_key
@@ -2127,9 +2105,7 @@ app.delete(
                         movie.poster_key
                     );
 
-                } catch (
-                    error
-                ) {
+                } catch (error) {
 
                     console.error(
                         "Poster R2 delete failed:",
@@ -2151,9 +2127,7 @@ app.delete(
                         movie.video_key
                     );
 
-                } catch (
-                    error
-                ) {
+                } catch (error) {
 
                     console.error(
                         "Video R2 delete failed:",
@@ -2165,14 +2139,8 @@ app.delete(
             }
 
 
-            /*
-             * Old local Railway files
-             * can also be cleaned.
-             */
-
             if (
-                !movie.poster_key
-                &&
+                !movie.poster_key &&
                 movie.poster
             ) {
 
@@ -2184,8 +2152,7 @@ app.delete(
 
 
             if (
-                !movie.video_key
-                &&
+                !movie.video_key &&
                 movie.video
             ) {
 
@@ -2203,9 +2170,7 @@ app.delete(
             });
 
 
-        } catch (
-            error
-        ) {
+        } catch (error) {
 
             console.error(
                 "Delete movie error:",
@@ -2229,7 +2194,7 @@ app.delete(
 
 
 // ==================================================
-// DELETE LEGACY LOCAL FILE
+// DELETE OLD LOCAL FILE
 // ==================================================
 
 function deleteLegacyFile(
@@ -2290,8 +2255,7 @@ function deleteLegacyFile(
 
 
     if (
-        filePath
-        &&
+        filePath &&
         fs.existsSync(
             filePath
         )
@@ -2303,9 +2267,7 @@ function deleteLegacyFile(
                 filePath
             );
 
-        } catch (
-            error
-        ) {
+        } catch (error) {
 
             console.error(
                 "Legacy file cleanup:",
@@ -2320,7 +2282,7 @@ function deleteLegacyFile(
 
 
 // ==================================================
-// CLEAN EXPIRED ADMIN SESSIONS
+// SESSION CLEANUP
 // ==================================================
 
 setInterval(
@@ -2336,9 +2298,7 @@ setInterval(
             );
 
 
-        } catch (
-            error
-        ) {
+        } catch (error) {
 
             console.error(
                 "Session cleanup:",
@@ -2349,16 +2309,12 @@ setInterval(
 
     },
 
-    1000
-    *
-    60
-    *
-    30
+    1000 * 60 * 30
 );
 
 
 // ==================================================
-// MULTER / GENERAL ERROR HANDLER
+// ERROR HANDLER
 // ==================================================
 
 app.use(
@@ -2426,13 +2382,17 @@ app.listen(
 
 
         if (
-            R2_ACCOUNT_ID
-            &&
+            R2_ACCOUNT_ID &&
             R2_BUCKET
         ) {
 
             console.log(
                 `Cloudflare R2 enabled: ${R2_BUCKET}`
+            );
+
+
+            console.log(
+                "R2 multipart upload enabled"
             );
 
         } else {
