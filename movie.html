@@ -12,10 +12,813 @@
 
     <title>Movie - AdamFlix</title>
 
-    <link
-        rel="stylesheet"
-        href="style.css"
-    >
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+        }
+
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+
+        body {
+            margin: 0;
+
+            background: #0a0a0a;
+            color: #ffffff;
+
+            font-family:
+                Arial,
+                Helvetica,
+                sans-serif;
+        }
+
+
+        a {
+            color: inherit;
+
+            text-decoration: none;
+        }
+
+
+        button {
+            font: inherit;
+        }
+
+
+        /* ==================================================
+           NAVBAR
+        ================================================== */
+
+        .navbar {
+            position: sticky;
+
+            top: 0;
+
+            z-index: 1000;
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: space-between;
+
+            gap: 24px;
+
+            min-height: 70px;
+
+            padding:
+                0
+                5%;
+
+            border-bottom:
+                1px solid
+                rgba(
+                    255,
+                    255,
+                    255,
+                    0.06
+                );
+
+            background:
+                rgba(
+                    8,
+                    8,
+                    8,
+                    0.96
+                );
+
+            backdrop-filter:
+                blur(14px);
+        }
+
+
+        .logo {
+            color: #ffffff;
+
+            font-size:
+                clamp(
+                    25px,
+                    3vw,
+                    34px
+                );
+
+            font-weight: 900;
+
+            letter-spacing:
+                -1px;
+        }
+
+
+        .navbar nav {
+            display: flex;
+
+            align-items: center;
+
+            gap: 22px;
+        }
+
+
+        .navbar nav a {
+            color: #bbbbbb;
+
+            font-size: 14px;
+
+            transition:
+                color
+                0.2s ease;
+        }
+
+
+        .navbar nav a:hover {
+            color: #ffffff;
+        }
+
+
+        /* ==================================================
+           PAGE
+        ================================================== */
+
+        .movie-page {
+            position: relative;
+
+            min-height:
+                calc(
+                    100vh - 70px
+                );
+
+            overflow: hidden;
+        }
+
+
+        .movie-backdrop {
+            position: absolute;
+
+            inset: 0;
+
+            z-index: 0;
+
+            background-position:
+                center;
+
+            background-size:
+                cover;
+
+            background-repeat:
+                no-repeat;
+
+            transform:
+                scale(1.08);
+
+            filter:
+                blur(18px);
+
+            opacity:
+                0.22;
+        }
+
+
+        .movie-backdrop-overlay {
+            position: absolute;
+
+            inset: 0;
+
+            z-index: 1;
+
+            background:
+
+                linear-gradient(
+                    to right,
+
+                    rgba(
+                        8,
+                        8,
+                        8,
+                        0.98
+                    )
+                    0%,
+
+                    rgba(
+                        8,
+                        8,
+                        8,
+                        0.88
+                    )
+                    42%,
+
+                    rgba(
+                        8,
+                        8,
+                        8,
+                        0.72
+                    )
+                    70%,
+
+                    rgba(
+                        8,
+                        8,
+                        8,
+                        0.92
+                    )
+                    100%
+                ),
+
+                linear-gradient(
+                    to top,
+
+                    #0a0a0a
+                    0%,
+
+                    transparent
+                    50%
+                );
+        }
+
+
+        .movie-detail {
+            position: relative;
+
+            z-index: 5;
+
+            display: grid;
+
+            grid-template-columns:
+                minmax(
+                    220px,
+                    310px
+                )
+                minmax(
+                    0,
+                    1fr
+                );
+
+            gap:
+                clamp(
+                    30px,
+                    5vw,
+                    70px
+                );
+
+            width:
+                min(
+                    1200px,
+                    90%
+                );
+
+            margin:
+                0
+                auto;
+
+            padding:
+                70px
+                0
+                90px;
+        }
+
+
+        /* ==================================================
+           POSTER
+        ================================================== */
+
+        .poster-column {
+            align-self: start;
+        }
+
+
+        .poster-card {
+            position: relative;
+
+            overflow: hidden;
+
+            border:
+                1px solid
+                rgba(
+                    255,
+                    255,
+                    255,
+                    0.08
+                );
+
+            border-radius:
+                16px;
+
+            background:
+                #151515;
+
+            box-shadow:
+                0
+                24px
+                70px
+                rgba(
+                    0,
+                    0,
+                    0,
+                    0.45
+                );
+        }
+
+
+        .poster-card img {
+            display: block;
+
+            width: 100%;
+
+            aspect-ratio:
+                2 / 3;
+
+            object-fit:
+                cover;
+        }
+
+
+        .poster-glow {
+            position: absolute;
+
+            right: 0;
+            bottom: 0;
+            left: 0;
+
+            height: 28%;
+
+            pointer-events: none;
+
+            background:
+                linear-gradient(
+                    to top,
+
+                    rgba(
+                        0,
+                        0,
+                        0,
+                        0.45
+                    ),
+
+                    transparent
+                );
+        }
+
+
+        /* ==================================================
+           INFO
+        ================================================== */
+
+        .movie-info {
+            align-self: center;
+
+            max-width: 760px;
+        }
+
+
+        .eyebrow {
+            margin-bottom: 14px;
+
+            color: #8e8e8e;
+
+            font-size: 12px;
+
+            font-weight: 700;
+
+            letter-spacing: 2px;
+
+            text-transform: uppercase;
+        }
+
+
+        .movie-title {
+            margin:
+                0
+                0
+                20px;
+
+            font-size:
+                clamp(
+                    38px,
+                    5vw,
+                    68px
+                );
+
+            line-height:
+                0.98;
+
+            letter-spacing:
+                -1.8px;
+        }
+
+
+        .movie-meta {
+            display: flex;
+
+            flex-wrap: wrap;
+
+            align-items: center;
+
+            gap: 10px;
+
+            margin-bottom: 18px;
+        }
+
+
+        .meta-pill {
+            display: inline-flex;
+
+            align-items: center;
+
+            min-height: 34px;
+
+            padding:
+                7px
+                11px;
+
+            border:
+                1px solid
+                rgba(
+                    255,
+                    255,
+                    255,
+                    0.09
+                );
+
+            border-radius:
+                999px;
+
+            background:
+                rgba(
+                    255,
+                    255,
+                    255,
+                    0.05
+                );
+
+            color: #dddddd;
+
+            font-size: 13px;
+        }
+
+
+        .rating-pill {
+            color: #ffffff;
+
+            font-weight: 700;
+        }
+
+
+        .genre-list {
+            display: flex;
+
+            flex-wrap: wrap;
+
+            gap: 8px;
+
+            margin:
+                4px
+                0
+                24px;
+        }
+
+
+        .genre-badge {
+            display: inline-flex;
+
+            align-items: center;
+
+            min-height: 32px;
+
+            padding:
+                6px
+                12px;
+
+            border:
+                1px solid
+                rgba(
+                    255,
+                    255,
+                    255,
+                    0.12
+                );
+
+            border-radius:
+                999px;
+
+            background:
+                rgba(
+                    255,
+                    255,
+                    255,
+                    0.06
+                );
+
+            color: #cfcfcf;
+
+            font-size: 12px;
+        }
+
+
+        .description {
+            max-width: 760px;
+
+            margin:
+                0
+                0
+                30px;
+
+            color: #c9c9c9;
+
+            font-size:
+                clamp(
+                    15px,
+                    1.5vw,
+                    18px
+                );
+
+            line-height: 1.75;
+        }
+
+
+        .actions {
+            display: flex;
+
+            flex-wrap: wrap;
+
+            gap: 12px;
+        }
+
+
+        .watch-button {
+            display: inline-flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+            gap: 10px;
+
+            min-width: 160px;
+
+            min-height: 48px;
+
+            padding:
+                12px
+                20px;
+
+            border: none;
+
+            border-radius:
+                8px;
+
+            background: #ffffff;
+
+            color: #000000;
+
+            font-weight: 800;
+
+            transition:
+                transform
+                0.18s ease,
+                opacity
+                0.18s ease;
+        }
+
+
+        .watch-button:hover {
+            transform:
+                translateY(
+                    -2px
+                );
+
+            opacity: 0.92;
+        }
+
+
+        .back-button {
+            display: inline-flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+            min-height: 48px;
+
+            padding:
+                12px
+                18px;
+
+            border:
+                1px solid
+                rgba(
+                    255,
+                    255,
+                    255,
+                    0.12
+                );
+
+            border-radius:
+                8px;
+
+            background:
+                rgba(
+                    255,
+                    255,
+                    255,
+                    0.05
+                );
+
+            color: #dddddd;
+        }
+
+
+        .back-button:hover {
+            border-color:
+                rgba(
+                    255,
+                    255,
+                    255,
+                    0.25
+                );
+
+            color: #ffffff;
+        }
+
+
+        /* ==================================================
+           ERROR / LOADING
+        ================================================== */
+
+        .loading-state,
+        .error-state {
+            position: relative;
+
+            z-index: 5;
+
+            width:
+                min(
+                    800px,
+                    90%
+                );
+
+            margin:
+                0
+                auto;
+
+            padding:
+                120px
+                0;
+
+            text-align: center;
+        }
+
+
+        .loading-state {
+            color: #aaaaaa;
+        }
+
+
+        .error-state h1 {
+            margin-bottom: 10px;
+        }
+
+
+        .error-state p {
+            color: #999999;
+        }
+
+
+        /* ==================================================
+           MOBILE
+        ================================================== */
+
+        @media (
+            max-width: 800px
+        ) {
+
+            .navbar {
+                min-height: 62px;
+
+                padding:
+                    0
+                    18px;
+            }
+
+
+            .navbar nav {
+                gap: 14px;
+            }
+
+
+            .movie-detail {
+                grid-template-columns:
+                    1fr;
+
+                gap: 28px;
+
+                width:
+                    min(
+                        92%,
+                        600px
+                    );
+
+                padding:
+                    35px
+                    0
+                    60px;
+            }
+
+
+            .poster-column {
+                width:
+                    min(
+                        260px,
+                        72vw
+                    );
+
+                margin:
+                    0
+                    auto;
+            }
+
+
+            .movie-info {
+                text-align: center;
+            }
+
+
+            .movie-title {
+                font-size:
+                    clamp(
+                        34px,
+                        10vw,
+                        48px
+                    );
+
+                line-height: 1.02;
+            }
+
+
+            .movie-meta,
+            .genre-list,
+            .actions {
+                justify-content: center;
+            }
+
+
+            .description {
+                font-size: 15px;
+
+                line-height: 1.65;
+            }
+
+
+            .actions {
+                flex-direction: column;
+            }
+
+
+            .watch-button,
+            .back-button {
+                width: 100%;
+            }
+
+        }
+
+
+        @media (
+            max-width: 480px
+        ) {
+
+            .navbar nav a {
+                font-size: 13px;
+            }
+
+
+            .logo {
+                font-size: 24px;
+            }
+
+
+            .movie-detail {
+                width: 92%;
+            }
+
+
+            .poster-column {
+                width:
+                    min(
+                        220px,
+                        68vw
+                    );
+            }
+
+
+            .movie-title {
+                font-size: 34px;
+            }
+
+        }
+
+    </style>
 
 </head>
 
@@ -23,17 +826,21 @@
 <body>
 
 
-<header>
+<header class="navbar">
 
-    <h1>AdamFlix</h1>
+    <div class="logo">
+        ADAMFLIX
+    </div>
+
 
     <nav>
 
-        <a href="index.html">
+        <a href="/">
             Home
         </a>
 
-        <a href="index.html">
+
+        <a href="/#latest">
             Movies
         </a>
 
@@ -42,21 +849,145 @@
 </header>
 
 
-<main>
+<main
+    id="moviePage"
+    class="movie-page"
+>
+
+
+    <div
+        id="movieBackdrop"
+        class="movie-backdrop"
+    ></div>
+
+
+    <div
+        class="movie-backdrop-overlay"
+    ></div>
+
+
+    <div
+        id="loadingState"
+        class="loading-state"
+    >
+        Loading movie...
+    </div>
+
 
     <section
-        class="movie-detail"
         id="movieDetail"
+        class="movie-detail"
+        style="display:none;"
     >
 
-        Loading...
+
+        <div class="poster-column">
+
+            <div class="poster-card">
+
+                <img
+                    id="moviePoster"
+                    src=""
+                    alt="Movie poster"
+                >
+
+
+                <div
+                    class="poster-glow"
+                ></div>
+
+            </div>
+
+        </div>
+
+
+        <div class="movie-info">
+
+
+            <div class="eyebrow">
+                NOW STREAMING
+            </div>
+
+
+            <h1
+                id="movieTitle"
+                class="movie-title"
+            >
+                Movie Title
+            </h1>
+
+
+            <div
+                id="movieMeta"
+                class="movie-meta"
+            ></div>
+
+
+            <div
+                id="genreList"
+                class="genre-list"
+            ></div>
+
+
+            <p
+                id="movieDescription"
+                class="description"
+            ></p>
+
+
+            <div class="actions">
+
+                <a
+                    id="watchButton"
+                    class="watch-button"
+                    href="#"
+                >
+                    ▶ Watch Now
+                </a>
+
+
+                <a
+                    class="back-button"
+                    href="/"
+                >
+                    ← Back to Home
+                </a>
+
+            </div>
+
+
+        </div>
+
 
     </section>
+
+
+    <section
+        id="errorState"
+        class="error-state"
+        style="display:none;"
+    >
+
+        <h1>
+            Movie unavailable
+        </h1>
+
+        <p>
+            Unable to load this movie.
+        </p>
+
+    </section>
+
 
 </main>
 
 
 <script>
+
+
+// ==================================================
+// URL
+// ==================================================
 
 const params =
     new URLSearchParams(
@@ -65,104 +996,367 @@ const params =
 
 
 const movieId =
-    params.get("id");
+    Number(
+        params.get(
+            "id"
+        )
+    );
 
+
+// ==================================================
+// ELEMENTS
+// ==================================================
+
+const loadingState =
+    document.getElementById(
+        "loadingState"
+    );
+
+
+const movieDetail =
+    document.getElementById(
+        "movieDetail"
+    );
+
+
+const errorState =
+    document.getElementById(
+        "errorState"
+    );
+
+
+const movieBackdrop =
+    document.getElementById(
+        "movieBackdrop"
+    );
+
+
+const moviePoster =
+    document.getElementById(
+        "moviePoster"
+    );
+
+
+const movieTitle =
+    document.getElementById(
+        "movieTitle"
+    );
+
+
+const movieMeta =
+    document.getElementById(
+        "movieMeta"
+    );
+
+
+const genreList =
+    document.getElementById(
+        "genreList"
+    );
+
+
+const movieDescription =
+    document.getElementById(
+        "movieDescription"
+    );
+
+
+const watchButton =
+    document.getElementById(
+        "watchButton"
+    );
+
+
+// ==================================================
+// GENRE
+// ==================================================
+
+function parseGenres(
+    value
+) {
+
+    return String(
+        value || ""
+    )
+        .split(",")
+        .map(
+            genre =>
+                genre.trim()
+        )
+        .filter(Boolean);
+
+}
+
+
+// ==================================================
+// LOAD MOVIE
+// ==================================================
 
 async function loadMovie() {
 
-    const response =
-        await fetch(
-            `/api/movies/${movieId}`
-        );
+    if (!movieId) {
 
-
-    if (!response.ok) {
-
-        document.getElementById(
-            "movieDetail"
-        ).innerHTML =
-            "<h2>Movie not found</h2>";
+        showError();
 
         return;
 
     }
 
 
-    const movie =
-        await response.json();
+    try {
+
+        const response =
+            await fetch(
+                `/api/movies/${movieId}`
+            );
 
 
-    document.getElementById(
-        "movieDetail"
-    ).innerHTML = `
+        if (!response.ok) {
 
-        <div class="detail-poster">
+            throw new Error(
+                "Movie not found"
+            );
 
-            <img
-                src="${movie.poster}"
-                alt="${movie.title}"
-            >
-
-        </div>
+        }
 
 
-        <div class="detail-info">
-
-            <h1>
-                ${movie.title}
-            </h1>
+        const movie =
+            await response.json();
 
 
-            <div class="movie-meta">
-
-                <span>
-                    ⭐ ${movie.rating}
-                </span>
-
-                <span>
-                    ${movie.year}
-                </span>
-
-                <span>
-                    ${movie.genre}
-                </span>
-
-                <span>
-                    ${movie.duration}
-                </span>
-
-            </div>
+        renderMovie(
+            movie
+        );
 
 
-            <p class="description">
+    } catch (error) {
 
-                ${movie.description}
+        console.error(
+            "Movie page error:",
+            error
+        );
 
-            </p>
 
+        showError();
 
-            <button
-                onclick="
-                    location.href=
-                    'watch.html?id=${movie.id}'
-                "
-            >
-
-                ▶ Watch Now
-
-            </button>
-
-        </div>
-
-    `;
+    }
 
 }
 
 
+// ==================================================
+// RENDER
+// ==================================================
+
+function renderMovie(
+    movie
+) {
+
+    document.title =
+        `${movie.title} - AdamFlix`;
+
+
+    movieTitle.textContent =
+        movie.title
+        ||
+        "Untitled Movie";
+
+
+    moviePoster.src =
+        movie.poster
+        ||
+        "";
+
+
+    moviePoster.alt =
+        movie.title
+        ||
+        "Movie poster";
+
+
+    movieBackdrop.style.backgroundImage =
+        movie.poster
+            ? `url("${movie.poster}")`
+            : "none";
+
+
+    movieDescription.textContent =
+        movie.description
+        ||
+        "No description available.";
+
+
+    movieMeta.innerHTML =
+        "";
+
+
+    const rating =
+        createMetaPill(
+            `⭐ ${movie.rating ?? "-"}`
+        );
+
+
+    rating.classList.add(
+        "rating-pill"
+    );
+
+
+    movieMeta.appendChild(
+        rating
+    );
+
+
+    movieMeta.appendChild(
+        createMetaPill(
+            movie.year
+            ??
+            "-"
+        )
+    );
+
+
+    movieMeta.appendChild(
+        createMetaPill(
+            movie.duration
+            ||
+            "-"
+        )
+    );
+
+
+    const genres =
+        parseGenres(
+            movie.genre
+        );
+
+
+    genreList.innerHTML =
+        "";
+
+
+    genres.forEach(
+        genre => {
+
+            const badge =
+                document.createElement(
+                    "span"
+                );
+
+
+            badge.className =
+                "genre-badge";
+
+
+            badge.textContent =
+                genre;
+
+
+            genreList.appendChild(
+                badge
+            );
+
+        }
+    );
+
+
+    if (
+        genres.length === 0
+    ) {
+
+        const badge =
+            document.createElement(
+                "span"
+            );
+
+
+        badge.className =
+            "genre-badge";
+
+
+        badge.textContent =
+            "Uncategorized";
+
+
+        genreList.appendChild(
+            badge
+        );
+
+    }
+
+
+    watchButton.href =
+        `/watch.html?id=${movie.id}`;
+
+
+    loadingState.style.display =
+        "none";
+
+
+    errorState.style.display =
+        "none";
+
+
+    movieDetail.style.display =
+        "grid";
+
+}
+
+
+// ==================================================
+// META PILL
+// ==================================================
+
+function createMetaPill(
+    value
+) {
+
+    const element =
+        document.createElement(
+            "span"
+        );
+
+
+    element.className =
+        "meta-pill";
+
+
+    element.textContent =
+        value;
+
+
+    return element;
+
+}
+
+
+// ==================================================
+// ERROR
+// ==================================================
+
+function showError() {
+
+    loadingState.style.display =
+        "none";
+
+
+    movieDetail.style.display =
+        "none";
+
+
+    errorState.style.display =
+        "block";
+
+}
+
+
+// ==================================================
+// START
+// ==================================================
+
 loadMovie();
 
-</script>
 
+</script>
 
 </body>
 
