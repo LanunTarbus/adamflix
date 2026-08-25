@@ -55,7 +55,6 @@
         <video
             id="videoPlayer"
             preload="metadata"
-            playsinline
         >
             Your browser does not support video playback.
         </video>
@@ -437,7 +436,7 @@ const fullscreenButton =
 
 
 // ==================================================
-// iOS / iPadOS DETECTION
+// iOS DETECTION
 // ==================================================
 
 const isIOS =
@@ -452,19 +451,38 @@ const isIOS =
     );
 
 
-/*
- * iPhone/iPad Safari is most reliable with the
- * browser's native <video> controls. Native controls
- * provide Apple's own fullscreen button.
- */
 if (isIOS) {
 
-    player.controls = true;
+    // Use native iOS video controls.
+    // Do not force inline playback.
+
+    player.controls =
+        true;
+
+
+    player.removeAttribute(
+        "playsinline"
+    );
+
+
+    player.removeAttribute(
+        "webkit-playsinline"
+    );
+
+
+    // Hide custom controls on iOS.
 
     controls.style.display =
         "none";
 
+
     centerPlayButton.style.display =
+        "none";
+
+
+    // Native controls already provide fullscreen.
+
+    fullscreenButton.style.display =
         "none";
 
 }
@@ -547,8 +565,6 @@ async function loadMovie() {
             await moviesResponse.json();
 
 
-        // TITLE
-
         document
             .getElementById(
                 "movieTitle"
@@ -560,8 +576,6 @@ async function loadMovie() {
         document.title =
             `${currentMovie.title} - AdamFlix`;
 
-
-        // META
 
         document
             .getElementById(
@@ -588,8 +602,6 @@ async function loadMovie() {
             `;
 
 
-        // DESCRIPTION
-
         document
             .getElementById(
                 "description"
@@ -597,8 +609,6 @@ async function loadMovie() {
             .textContent =
                 currentMovie.description || "";
 
-
-        // VIDEO
 
         player.src =
             currentMovie.video;
@@ -656,22 +666,26 @@ function togglePlay() {
 }
 
 
-playPauseButton.addEventListener(
-    "click",
-    togglePlay
-);
+if (!isIOS) {
+
+    playPauseButton.addEventListener(
+        "click",
+        togglePlay
+    );
 
 
-centerPlayButton.addEventListener(
-    "click",
-    togglePlay
-);
+    centerPlayButton.addEventListener(
+        "click",
+        togglePlay
+    );
 
 
-player.addEventListener(
-    "click",
-    togglePlay
-);
+    player.addEventListener(
+        "click",
+        togglePlay
+    );
+
+}
 
 
 player.addEventListener(
@@ -679,12 +693,16 @@ player.addEventListener(
 
     function () {
 
-        playPauseButton.textContent =
-            "❚❚";
+        if (!isIOS) {
+
+            playPauseButton.textContent =
+                "❚❚";
 
 
-        centerPlayButton.style.display =
-            "none";
+            centerPlayButton.style.display =
+                "none";
+
+        }
 
     }
 );
@@ -695,12 +713,16 @@ player.addEventListener(
 
     function () {
 
-        playPauseButton.textContent =
-            "▶";
+        if (!isIOS) {
+
+            playPauseButton.textContent =
+                "▶";
 
 
-        centerPlayButton.style.display =
-            "flex";
+            centerPlayButton.style.display =
+                "flex";
+
+        }
 
     }
 );
@@ -756,7 +778,7 @@ forwardButton.addEventListener(
 
 
 // ==================================================
-// VIDEO METADATA
+// METADATA
 // ==================================================
 
 player.addEventListener(
@@ -774,7 +796,7 @@ player.addEventListener(
 
 
 // ==================================================
-// VIDEO TIME UPDATE
+// TIME UPDATE
 // ==================================================
 
 player.addEventListener(
@@ -849,7 +871,8 @@ progressSlider.addEventListener(
             (
                 percent /
                 100
-            ) *
+            )
+            *
             player.duration;
 
     }
@@ -946,8 +969,7 @@ function updateVolumeIcon() {
 
 
     if (
-        player.volume <
-        0.5
+        player.volume < 0.5
     ) {
 
         muteButton.textContent =
@@ -966,74 +988,27 @@ function updateVolumeIcon() {
 
 // ==================================================
 // FULLSCREEN
-// Desktop / Android / iPhone / iPad
+// Android / Desktop
 // ==================================================
 
 fullscreenButton.addEventListener(
     "click",
 
-    async function (event) {
+    async function (
+        event
+    ) {
 
         event.preventDefault();
+
         event.stopPropagation();
 
 
+        if (isIOS) {
+            return;
+        }
+
+
         try {
-
-            // ==========================================
-            // iPhone / iPad
-            // ==========================================
-
-            if (isIOS) {
-
-                /*
-                 * Apple's reliable fullscreen path is
-                 * fullscreen on the VIDEO element itself.
-                 */
-
-                if (
-                    typeof player.webkitEnterFullscreen ===
-                    "function"
-                ) {
-
-                    player.webkitEnterFullscreen();
-
-                    return;
-
-                }
-
-
-                if (
-                    typeof player.webkitEnterFullScreen ===
-                    "function"
-                ) {
-
-                    player.webkitEnterFullScreen();
-
-                    return;
-
-                }
-
-
-                /*
-                 * If Safari does not expose the method,
-                 * native controls are already enabled.
-                 * The user can use Safari's fullscreen icon.
-                 */
-
-                console.warn(
-                    "Use the native iOS video fullscreen button."
-                );
-
-                return;
-
-            }
-
-
-            // ==========================================
-            // STANDARD FULLSCREEN
-            // Chrome / Edge / Firefox / Android / Safari
-            // ==========================================
 
             if (
                 !document.fullscreenElement
@@ -1047,27 +1022,6 @@ fullscreenButton.addEventListener(
 
                     await playerContainer
                         .requestFullscreen();
-
-
-                    // Optional landscape lock on Android
-
-                    try {
-
-                        if (
-                            screen.orientation
-                            &&
-                            screen.orientation.lock
-                        ) {
-
-                            await screen.orientation
-                                .lock("landscape");
-
-                        }
-
-                    } catch {
-                        // Browser may reject orientation lock.
-                    }
-
 
                     return;
 
@@ -1086,17 +1040,17 @@ fullscreenButton.addEventListener(
                 }
 
 
+                // Last fallback:
+                // native video fullscreen if browser has it.
+
                 if (
-                    player.requestFullscreen
+                    typeof player.webkitEnterFullscreen ===
+                    "function"
                 ) {
 
-                    await player
-                        .requestFullscreen();
-
-                    return;
+                    player.webkitEnterFullscreen();
 
                 }
-
 
             } else {
 
@@ -1119,8 +1073,6 @@ fullscreenButton.addEventListener(
                     document
                         .webkitExitFullscreen();
 
-                    return;
-
                 }
 
             }
@@ -1133,31 +1085,6 @@ fullscreenButton.addEventListener(
                 error
             );
 
-
-            // Last iOS attempt
-
-            if (
-                isIOS
-                &&
-                typeof player.webkitEnterFullscreen ===
-                    "function"
-            ) {
-
-                try {
-
-                    player.webkitEnterFullscreen();
-
-                } catch (fallbackError) {
-
-                    console.error(
-                        "iOS fullscreen fallback failed:",
-                        fallbackError
-                    );
-
-                }
-
-            }
-
         }
 
     }
@@ -1165,19 +1092,24 @@ fullscreenButton.addEventListener(
 
 
 // ==================================================
-// FULLSCREEN STATE
+// FULLSCREEN CHANGE
 // ==================================================
 
 function updateFullscreenButton() {
 
-    const active =
+    if (isIOS) {
+        return;
+    }
+
+
+    const isFullscreen =
         document.fullscreenElement
         ||
         document.webkitFullscreenElement;
 
 
     fullscreenButton.textContent =
-        active
+        isFullscreen
             ? "✕"
             : "⛶";
 
@@ -1193,30 +1125,6 @@ document.addEventListener(
 document.addEventListener(
     "webkitfullscreenchange",
     updateFullscreenButton
-);
-
-
-player.addEventListener(
-    "webkitbeginfullscreen",
-
-    function () {
-
-        fullscreenButton.textContent =
-            "✕";
-
-    }
-);
-
-
-player.addEventListener(
-    "webkitendfullscreen",
-
-    function () {
-
-        fullscreenButton.textContent =
-            "⛶";
-
-    }
 );
 
 
@@ -1291,7 +1199,11 @@ document.addEventListener(
 
             case "f":
 
-                fullscreenButton.click();
+                if (!isIOS) {
+
+                    fullscreenButton.click();
+
+                }
 
                 break;
 
@@ -1313,6 +1225,11 @@ document.addEventListener(
 // ==================================================
 
 function showControls() {
+
+    if (isIOS) {
+        return;
+    }
+
 
     controls.classList.remove(
         "controls-hidden"
@@ -1347,28 +1264,32 @@ function showControls() {
 }
 
 
-playerContainer.addEventListener(
-    "mousemove",
-    showControls
-);
+if (!isIOS) {
+
+    playerContainer.addEventListener(
+        "mousemove",
+        showControls
+    );
 
 
-playerContainer.addEventListener(
-    "touchstart",
-    showControls
-);
+    playerContainer.addEventListener(
+        "touchstart",
+        showControls
+    );
 
 
-player.addEventListener(
-    "pause",
-    showControls
-);
+    player.addEventListener(
+        "pause",
+        showControls
+    );
 
 
-player.addEventListener(
-    "play",
-    showControls
-);
+    player.addEventListener(
+        "play",
+        showControls
+    );
+
+}
 
 
 // ==================================================
@@ -1398,24 +1319,20 @@ function formatTime(
 
     const hours =
         Math.floor(
-            totalSeconds /
-            3600
+            totalSeconds / 3600
         );
 
 
     const minutes =
         Math.floor(
             (
-                totalSeconds %
-                3600
-            ) /
-            60
+                totalSeconds % 3600
+            ) / 60
         );
 
 
     const secs =
-        totalSeconds %
-        60;
+        totalSeconds % 60;
 
 
     if (
@@ -1465,7 +1382,7 @@ function formatTime(
 
 
 // ==================================================
-// CONTINUE WATCHING - RESTORE
+// RESTORE PROGRESS
 // ==================================================
 
 function restoreProgress() {
@@ -1532,7 +1449,7 @@ function restoreProgress() {
 
 
 // ==================================================
-// CONTINUE WATCHING - SAVE
+// SAVE PROGRESS
 // ==================================================
 
 function saveProgress(
@@ -1564,8 +1481,7 @@ function saveProgress(
             duration:
                 player.duration,
 
-            percent:
-                percent
+            percent
 
         })
 
@@ -1785,8 +1701,7 @@ function renderRelatedMovies() {
 
 
             if (
-                related.length >=
-                10
+                related.length >= 10
             ) {
 
                 break;
@@ -1944,7 +1859,7 @@ function selectNextMovie() {
 
 
 // ==================================================
-// NEXT MOVIE COUNTDOWN
+// NEXT COUNTDOWN
 // ==================================================
 
 function startNextCountdown() {
